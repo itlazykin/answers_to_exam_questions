@@ -180,10 +180,15 @@ public interface BinaryOperator<T> extends BiFunction<T, T, T> {
 умолчанию.
 
 Predicate<Integer> predicate = x -> x > 5;
+
 Consumer<Integer> consumer = x -> System.out.println(x);
+
 Function<Integer, String> function = x -> x.toString();
+
 Supplier<Integer> supplier = () -> new Integer(5);
+
 UnaryOperator<Integer> unaryOperator = x -> x*x;
+
 BinaryOperator<Integer> binaryOperator = (x, y) -> x * y 
 
 [К оглавлению](#Lambda)
