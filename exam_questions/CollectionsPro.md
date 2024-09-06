@@ -12,7 +12,7 @@
 
 [6. Как можно получить тип Generics?](#6-Как-можно-получить-тип-Generics)
 
-[7. Что такое итератор? В чем разница между iterator и listIterator? Что такое fail-fast и fail-safe поведение итератора и в чем между ними разница?  Когда возникает ConcurrentModificationException?](#7-Что-такое-итератор-В-чем-разница-между-iterator-и-listIterator-Что-такое-fail-fast-и-fail-safe-поведение-итератора-и-в-чем-между-ними-разница-Когда-возникает-ConcurrentModificationException)
+[7. Что такое итератор? В чем разница между iterator и listIterator? Что такое fail-fast и fail-safe поведение итератора и в чем между ними разница? Когда возникает ConcurrentModificationException?](#7-Что-такое-итератор-В-чем-разница-между-iterator-и-listIterator-Что-такое-fail-fast-и-fail-safe-поведение-итератора-и-в-чем-между-ними-разница-Когда-возникает-ConcurrentModificationException)
 
 [8. Что такое коллекции?](#8-Что-такое-коллекции)
 
@@ -66,29 +66,116 @@
 
 # 1. Что такое generics?
 
+Начиная с Java 5 в языке программирования появились возможности обобщенного программирования. До этого программисту
+приходилось выполнять приведение каждого объекта, прочитанного из коллекции. Если кто-то случайно вставлял туда объект
+неправильного типа, приведение могло вызвать runtime exception. С помощью обобщенных типов можно сообщить компилятору,
+какие типы допускаются в каждой коллекции. Компилятор автоматически добавит приведение типов и во время компиляции
+обнаружит попытки вставить объект неправильного типа, и у нас в рантайме уже ничего не упадет.
+Это делает программы более безопасными и ясными. С их помощью можно объявлять классы,
+интерфейсы и методы, где тип данных указан в виде параметра.
 [К оглавлению](#CollectionsPro)
 
 # 2. Что такое wild cards?
+
+Wildcards в Java используются в обобщениях для обозначения неизвестного типа. Это удобно, когда вы хотите работать с
+различными типами данных, но не хотите жёстко задавать конкретный тип. Wildcards представляются символом вопросительного
+знака (?). Используется, когда тип данных может быть абсолютно любым. Если необходимо читать из контейнера, то
+используйте wildcard с верхней границей "? extends". Если необходимо
+писать в контейнер, то используйте wildcard с нижней границей "? super". Не используйте wildcard, если нужно производить
+и запись, и чтение.
+
+````java
+List<?> list = new ArrayList<>();
+`````
 
 [К оглавлению](#CollectionsPro)
 
 # 3. Что такое bounded wild cards?
 
+Ограниченный wildcard с верхней границей (<? extends Type>): Используется, когда тип данных должен быть подтипом (или
+самим типом) указанного класса. Например:
+
+````java
+List<? extends Number> list = new ArrayList<>();
+````
+
+Здесь list может содержать элементы типа Number, Integer, Double, и других классов, которые являются подтипами Number.
+
 [К оглавлению](#CollectionsPro)
 
 # 4. Что такое unbounded wild cards?
+
+Ограниченный wildcard с нижней границей (<? super Type>):
+Используется, когда тип данных должен быть суперклассом (или самим типом) указанного класса. Например:
+
+````java
+List<? super Integer> list = new ArrayList<>();
+````
+
+В этом случае list может содержать элементы типа Integer, Number, или Object (так как они являются супер классами
+Integer).
 
 [К оглавлению](#CollectionsPro)
 
 # 5. Где хранится информация про Generics?
 
+После компиляции JVM не имеет информации о типах параметров обобщений. Все данные о Generics используются только на
+этапе компиляции для обеспечения типовой безопасности и не сохраняются в байт-коде. Процесс удаления информации о типах
+во время компиляции называется стирание типов. Во время компиляции все параметры типов в обобщениях (Generics)
+заменяются на их границы или на Object, если границы не указаны. Например, List<String> и List<Integer> после
+компиляции становятся просто List. Почему нельзя создавать массивы обобщённых типов или напрямую проверять тип обобщения
+с помощью instanceof во время выполнения — эта информация просто недоступна в байт-коде.
+
 [К оглавлению](#CollectionsPro)
 
 # 6. Как можно получить тип Generics?
 
+Если обобщённый тип задан в классе или интерфейсе как параметризованный тип, вы можете получить информацию о нём с
+помощью рефлексии.
+
+````java
+public class GenericTypeDemo<T> {
+    public static void main(String[] args) {
+        // Анонимный класс для захвата информации о типе обобщения
+        GenericTypeDemo<String> instance = new GenericTypeDemo<String>() {
+        };
+        Type superclass = instance.getClass().getGenericSuperclass();
+
+        if (superclass instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) superclass;
+            Type[] typeArguments = parameterizedType.getActualTypeArguments();
+            for (Type typeArgument : typeArguments) {
+                System.out.println("Тип обобщения: " + typeArgument);
+            }
+        }
+    }
+````
+
+Используется анонимный подкласс (GenericTypeDemo<String> instance = new GenericTypeDemo<String>() {}), чтобы обойти Type
+Erasure и сохранить информацию о типе обобщения, которую затем можно извлечь с помощью рефлексии.
+
+Ещё один способ сохранить информацию о типе — передать его явно в конструктор или метод в виде класса (Class<T>):
+````java
+public class GenericClass<T> {
+    private Class<T> type;
+
+    public GenericClass(Class<T> type) {
+        this.type = type;
+    }
+
+    public void printType() {
+        System.out.println("Тип обобщения: " + type.getName());
+    }
+
+    public static void main(String[] args) {
+        GenericClass<String> instance = new GenericClass<>(String.class);
+        instance.printType();  // Выведет: Тип обобщения: java.lang.String
+    }
+}
+````
 [К оглавлению](#CollectionsPro)
 
-# 7. Что такое итератор? В чем разница между iterator и listIterator? Что такое fail-fast и fail-safe поведение итератора и в чем между ними разница?  Когда возникает ConcurrentModificationException?
+# 7. Что такое итератор? В чем разница между iterator и listIterator? Что такое fail-fast и fail-safe поведение итератора и в чем между ними разница? Когда возникает ConcurrentModificationException?
 
 [К оглавлению](#CollectionsPro)
 
