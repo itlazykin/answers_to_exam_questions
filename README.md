@@ -4,6 +4,8 @@
 + [OOP](exam_questions/OOP.md#oop)
 + [CollectionsLite](exam_questions/CollectionsLite.md#CollectionsLite)
 + [Lambda](exam_questions/Lambda.md#Lambda)
++ [CollectionsPro](exam_questions/CollectionsPro.md#CollectionsPro)
+
 
 
 
