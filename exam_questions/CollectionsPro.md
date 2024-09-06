@@ -408,7 +408,7 @@ hashCode позволяет определить корзину для поис�
 
 # 18. Какая временная сложность алгоритмов добавления, замены и удаления в каждой из коллекций? С чем связаны отличия?
 
-![img](https://github.com/johnivo/job4j/blob/master/interview_questions/src/main/resources/pro_2.png)
+![img](https://https://github.com/itlazykin/answers_to_exam_questions/tree/main/main/resources/Временная сложность коллекций.png)
 
 [К оглавлению](#CollectionsPro)
 
