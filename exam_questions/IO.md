@@ -88,9 +88,75 @@
 
 # 1. Что такое поток ввода-вывода?
 
+Поток ввода-вывода - это абстракция для потребления или поставки данных. Цель создания InputStream и OutputStream это
+абстрактный доступ к вводу и выводу. Источник при этом не важен. Это может быть файл, консоль, веб-страница. Stream -
+это бесконечный поток данных, подключенный к источнику данных
+
 [К оглавлению](#IO)
 
 # 2. Что такое Java IO?
+
+Java IO — это API в Java, который предоставляет инструменты и классы для работы с операциями ввода-вывода, такими как
+чтение и запись данных в файлы, консоль, сеть и другие источники. Этот пакет, в первую очередь, состоит из классов,
+обеспечивающих доступ к данным в виде потока (stream). Java IO — довольно мощный, но низкоуровневый API, который требует
+тщательного управления ресурсами.
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/tree/main/main/resources/java.IO.png)
+
+Для разных типов данных существуют разные реализации классов
+
+| _                | Byte Based                            | _                                   | Character Based                   | _                           |
+|------------------|---------------------------------------|-------------------------------------|-----------------------------------|-----------------------------|
+| _                | Input                                 | Output                              | Input                             | Output                      |
+| Basic            | InputStream                           | OutputStream                        | Reader / InputStreamReader        | Writer / OutputStreamWriter |
+| Arrays           | ByteArrayInputStream                  | ByteArrayOutputStream               | CharArrayReader                   | CharArrayWriter             |
+| Files            | FileInputStream / RandomAccessFile    | FileOutputStream / RandomAccessFile | FileReader                        | FileWriter                  |
+| Pipes            | PipedInputStream                      | PipedOutputStream                   | PipedReader                       | PipedWriter                 |
+| Buffering        | BufferedInputStream                   | BufferedOutputStream                | BufferedReader                    | BufferedWriter              |
+| Filtering        | FilterInputStream                     | FilterOutputStream                  | FilterReader                      | FilterWriter                |
+| Parsing          | PushbackInputStream / StreamTokenizer | _                                   | PushbackReader / LineNumberReader | _                           |
+| Strings          | _                                     | _                                   | StringReader                      | StringWriter                |
+| Data             | DataInputStream                       | DataOutputStream                    | _                                 | _                           |
+| Data - Formatted | _                                     | PrintStream                         | _                                 | PrintWriter                 |
+| Objects          | ObjectInputStream                     | ObjectOutputStream                  | _                                 | _                           |
+
+**Классы Java IO API**
+
+**Базовые**
+
++ `InputStream` /` OutputStream` - абстрактный класс, определяющий потоковый байтовый ввод/вывод
++ `Reader` / `Writer` - Символьные потоки имеют два основных абстрактных класса `Reader` и `Writer`,
+  управляющие потоками символов `Unicode`.
++ `InputStreamReader` / `OutputStreamWriter` Входной/выдодной поток, транслирующий байты в символы
+
+**Массивы**
+
++ `ByteArrayInputStream` / `ByteArrayOutputStream` - использует байтовый массив в потоке.
++ `CharArrayReader` / `CharArrayWriter` - читает/пишет из символьного массива.
+
+**Files**
+
++ `FileInputStream` / `FileOutputStream` - Чтение/Отправка данных в файл на диске. Реализация класса `OutputStream`
++ `RandomAccessFile` / `RandomAccessFile` - Чтение/запись файлов с произвольным доступом. метод `seek()` позволяет
+  переместиться к определенной позиции и изменить хранящееся там значение.
+  При использовании RandomAccessFile необходимо знать структуру файла. Класс `RandomAccessFile` содержит методы для
+  чтения
+  и записи примитивов и строк UTF-8.
+  `RandomAccessFile` может открываться в режиме чтения ("r") или чтения/записи ("rw"). Также есть режим "rws", когда
+  файл
+  открывается для операций чтения-записи и каждое изменение данных файла немедленно записывается на физическое
+  устройство.
++ `FileReader` / `FileWriter` `FileWriter` записывает данные в файл. При вводе/выводе практически всегда применяется
+  буферизация, поэтому используется `BufferedWriter`.                           
+  Когда данные входного потока исчерпываются, метод `readLine()` возвращает `null`. Для потока явно вызывается
+  метод `close()`;
+  если не вызвать его для всех выходных файловых потоков, в буферах могут остаться данные, и файл получится неполным
+
+**Буферизация**
+
++ `BufferedInputStream` / `BufferedOutputStream` - буферизируемый поток. Буферы вывода нужно для повышения
+  производительности
++ `BufferedReader` / `BufferedWriter`
 
 [К оглавлению](#IO)
 
