@@ -258,18 +258,13 @@ if(условие){
 ```java
 int age = 18;
 if(age >=18){
-        System.out.
-
-println("You are an adult.");
+        System.out.println("You are an adult.");
 }else{
-        System.out.
-
-println("You are not an adult.");
+        System.out.println("You are not an adult.");
 }
 Вывод программы:
 
-You are
-an adult.
+You are an adult.
 ```
 
 Конструкция if-else if-else:
@@ -293,21 +288,13 @@ if(условие1){
 int score = 85;
 
 if(score >=90){
-        System.out.
-
-println("Отлично!");
+        System.out.println("Отлично!");
 }else if(score >=75){
-        System.out.
-
-println("Хорошо!");
+        System.out.println("Хорошо!");
 }else if(score >=50){
-        System.out.
-
-println("Удовлетворительно.");
+        System.out.println("Удовлетворительно.");
 }else{
-        System.out.
-
-println("Неудовлетворительно.");
+        System.out.println("Неудовлетворительно.");
 }
 Вывод программы:
 
@@ -327,9 +314,7 @@ println("Неудовлетворительно.");
 int number = 10;
 
 if(number >0){
-        System.out.
-
-println("Число положительное.");
+        System.out.println("Число положительное.");
 }
 ```
 
@@ -376,44 +361,28 @@ int day = 3;
 
 switch(day){
         case 1:
-        System.out.
-
-println("Понедельник");
+        System.out.println("Понедельник");
 break;
         case 2:
-        System.out.
-
-println("Вторник");
+        System.out.println("Вторник");
 break;
         case 3:
-        System.out.
-
-println("Среда");
+        System.out.println("Среда");
 break;
         case 4:
-        System.out.
-
-println("Четверг");
+        System.out.println("Четверг");
 break;
         case 5:
-        System.out.
-
-println("Пятница");
+        System.out.println("Пятница");
 break;
         case 6:
-        System.out.
-
-println("Суббота");
+        System.out.println("Суббота");
 break;
         case 7:
-        System.out.
-
-println("Воскресенье");
+        System.out.println("Воскресенье");
 break;
 default:
-        System.out.
-
-println("Неверный день");
+        System.out.println("Неверный день");
 }
 Вывод программы:
 
@@ -442,29 +411,18 @@ int num = 2;
 
 switch(num){
         case 1:
-        System.out.
-
-println("Один");
+        System.out.println("Один");
 case 2:
-        System.out.
-
-println("Два");
+        System.out.println("Два");
 case 3:
-        System.out.
-
-println("Три");
+        System.out.println("Три");
 
 default:
-        System.out.
-
-println("Число неизвестно");
+        System.out.println("Число неизвестно");
 }
 Вывод:
 
-Два
-        Три
-
-Число неизвестно
+Два Три Число неизвестно
 
         (Поскольку нет break в case 2, выполнение продолжилось и вывело результат для case 3и default.)
 ```
@@ -478,19 +436,13 @@ String:
 String fruit = "Apple";
 switch(fruit){
         case"Apple":
-        System.out.
-
-println("Это яблоко.");
+        System.out.println("Это яблоко.");
 break;
         case"Orange":
-        System.out.
-
-println("Это апельсин.");
+        System.out.println("Это апельсин.");
 break;
 default:
-        System.out.
-
-println("Неизвестный фрукт.");
+        System.out.println("Неизвестный фрукт.");
 }
 Вывод:
 
