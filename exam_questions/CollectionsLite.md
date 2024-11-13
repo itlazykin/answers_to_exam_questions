@@ -115,7 +115,7 @@ update, delete). На уровне Collection не существует спос
 
 # 5. Какие есть типы коллекций? Как они характеризуются? Расскажите про иерархию коллекций.
 
-![img](https://github.com/itlazykin/answers_to_exam_questions/tree/main/main/resources/Collections.png)
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/Collections.png)
 
 + List - список.
 + Set - множество
