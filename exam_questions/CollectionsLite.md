@@ -203,6 +203,15 @@ update, delete). На уровне Collection не существует спос
 
 # 6. Назовите основные классы, которые реализуют интерфейсы List Set Map.
 
+- ArrayList, LinkedList, Vector - классы для хранения элементов в виде массива. Они реализуют интерфейс List.
+- HashSet, LinkedHashSet, TreeSet - классы для хранения уникальных элементов. Они реализуют интерфейсы Set и SortedSet.
+- HashMap, LinkedHashMap, TreeMap, ConcurrentHashMap - классы для хранения пар ключ-значение. Они реализуют интерфейс
+  Map и его наследников.
+-
+[К оглавлению](#CollectionsLite)
+
+# 7. В чем отличие ArrayList от LinkedList?
+
 **1) Структура данных:**
 + ArrayList - реализован на динамическом массиве.
 + LinkedList - двусвязный список.
