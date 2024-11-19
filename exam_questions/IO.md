@@ -354,75 +354,1243 @@ Scanner обновляет свой внутренний указатель на
 
 # 8. Что такое байтовый поток? Как он реализован внутри?
 
+Байтовые потоки в Java — это основной механизм для работы с вводом и выводом на уровне байтов. Они обеспечивают низкоуровневый доступ к данным и используются для обработки файлов, сетевых потоков и любых других данных, представленных в виде байтов.
+В Java байтовые потоки делятся на два основных семейства:
+`InputStream` — это абстрактный класс, который определяет основные методы для чтения данных. Он реализует функциональность для последовательного чтения байтов из источника.
+
+### Основные методы класса InputStream:
++ int read() — читает один байт данных и возвращает его. Возвращает -1, если достигнут конец потока.
++ int read(byte[] b) — читает данные в массив байтов b и возвращает количество фактически прочитанных байтов.
++ int read(byte[] b, int off, int len) — читает до len байтов и записывает их в массив b, начиная с индекса off.
++ void close() — закрывает поток и освобождает ресурсы.
+```java
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class InputStreamExample {
+    public static void main(String[] args) {
+        try (FileInputStream inputStream = new FileInputStream("example.txt")) {
+            int byteData;
+            while ((byteData = inputStream.read()) != -1) {
+                System.out.print((char) byteData); // Преобразование байта в символ
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+`OutputStream` — это абстрактный класс, который определяет методы для записи данных в виде байтов.
+### Основные методы класса OutputStream:
++ void write(int b) — записывает один байт данных.
++ void write(byte[] b) — записывает массив байтов b.
++ void write(byte[] b, int off, int len) — записывает len байтов из массива b, начиная с индекса off.
++ void flush() — очищает буфер потока и записывает все накопленные данные.
++ void close() — закрывает поток и освобождает ресурсы.
+```java
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class OutputStreamExample {
+    public static void main(String[] args) {
+        try (FileOutputStream outputStream = new FileOutputStream("output.txt")) {
+            String data = "Hello, world!";
+            outputStream.write(data.getBytes()); // Запись строки в файл
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+### Как байтовый поток работает внутри?
+На уровне реализации байтовые потоки работают с низкоуровневыми байтами данных, независимо от их типа.
+1. #### Чтение данных (InputStream)
+Когда данные читаются через InputStream, происходит следующий процесс:
++ Чтение одного байта: Метод read() читает один байт за раз. Если источник ввода (например, файл) исчерпан, метод возвращает -1.
++ Чтение нескольких байтов: Метод read(byte[] buffer) заполняет массив buffer байтами из источника ввода.
++ Если данных меньше, чем размер буфера, возвращается количество фактически прочитанных байтов.
++ Обработка ошибок: В случае ошибок ввода-вывода, таких как потеря подключения к файлу, метод может выбросить IOException.
+2. #### Запись данных (OutputStream) 
+При записи данных с помощью OutputStream происходит:
++ Запись одного байта: Метод write(int b) записывает один байт данных.
++ Запись массива байтов: Метод write(byte[] buffer) записывает сразу несколько байтов из массива buffer.
++ Буферизация и flush(): Если используется буферизированный поток, данные сначала накапливаются в буфере, а затем записываются в выходной поток при вызове метода flush() или при заполнении буфера.
+3. #### Закрытие потоков
+После завершения работы с потоком, всегда важно вызвать метод close(), чтобы освободить все ресурсы и закрыть соединение с источником (например, файл или сеть). Закрытие потока также вызывает метод flush() для записи всех накопленных данных.
+#### Примеры реализаций байтовых потоков
+`FileInputStream` и `FileOutputStream`
+Эти классы являются прямыми реализациями байтовых потоков для работы с файлами. `FileInputStream` позволяет читать данные из файла в виде байтов, а `FileOutputStream` — записывать данные в файл.
+
+`BufferedInputStream` и `BufferedOutputStream`
+Добавляют буферизацию, что делает операции более эффективными за счёт хранения данных в буфере до тех пор, пока он не заполнится (или пока не будет вызван flush()).
 [К оглавлению](#IO)
 
 # 9. Что такое символьный поток. Как он реализован внутри?
 
+Символьный поток в Java — это поток данных, который работает с символами (char). Символьные потоки предназначены для работы с текстовыми данными, такими как строки и символы, и учитывают кодировку символов, что позволяет корректно обрабатывать многоязычный текст. Они являются частью пакета java.io и предоставляют более высокий уровень абстракции по сравнению с байтовыми потоками.
+#### Основные классы символьных потоков
+`Reader` — это абстрактный класс, который предоставляет базовые методы для чтения символов. Он предназначен для чтения текстовых данных из различных источников.
+
+#### Основные методы класса Reader:
++ int read() — читает один символ и возвращает его в виде целого числа (код символа). Возвращает -1, если достигнут конец потока.
++ int read(char[] cbuf) — читает данные в массив символов cbuf и возвращает количество фактически прочитанных символов.
++ int read(char[] cbuf, int off, int len) — читает до len символов и записывает их в массив cbuf, начиная с индекса off.
++ void close() — закрывает поток и освобождает ресурсы.
+```java
+import java.io.FileReader;
+import java.io.IOException;
+
+public class FileReaderExample {
+    public static void main(String[] args) {
+        try (FileReader reader = new FileReader("example.txt")) {
+            int character;
+            while ((character = reader.read()) != -1) {
+                System.out.print((char) character);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+`Writer` — это абстрактный класс, который предоставляет базовые методы для записи символов. Он используется для записи текстовых данных в различные источники.
+
+#### Основные методы класса Writer:
+void write(int c) — записывает один символ.
+void write(char[] cbuf) — записывает массив символов cbuf.
+void write(char[] cbuf, int off, int len) — записывает len символов из массива cbuf, начиная с индекса off.
+void write(String str) — записывает строку str.
+void flush() — очищает буфер потока и записывает все накопленные данные.
+void close() — закрывает поток и освобождает ресурсы.
+```java
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class FileWriterExample {
+    public static void main(String[] args) {
+        try (FileWriter writer = new FileWriter("output.txt")) {
+            writer.write("Hello, world!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+#### Как символьный поток работает внутри?
+Символьные потоки используют буферизированные массивы символов для чтения и записи данных, обеспечивая работу с текстом в кодировке Unicode.
+
+1. #### Чтение данных (Reader)
+   Когда данные читаются через Reader, происходит:
+
++ Чтение символов: Метод read() считывает один символ за раз и возвращает его код в виде целого числа. Если источник пуст, возвращается -1.
+При чтении данных из источника (например, файла) учитывается кодировка символов, чтобы корректно интерпретировать байты как символы.
++ Буферизация: Буферизация позволяет считывать данные построчно или по блокам, что ускоряет процесс по сравнению с посимвольным чтением.
++ Обработка ошибок: Если произошла ошибка ввода-вывода (например, файл не найден), метод может выбросить IOException.
+2. #### Запись данных (Writer)
+При записи данных с помощью Writer:
+
++ Запись символов: Метод write() записывает один символ за раз или массив символов.
+Данные кодируются в нужную кодировку перед записью (например, UTF-8, UTF-16). 
++ Буферизация и flush(): Если используется буферизированный поток, данные накапливаются в буфере и записываются в выходной поток, когда буфер заполнен или вызван метод flush().
++ Закрытие потока: После завершения работы с потоком необходимо вызвать close(), чтобы освободить ресурсы и закрыть соединение с источником. Это также автоматически вызовет flush() для записи всех накопленных данных.
+#### Классы символьных потоков в Java
+1. `FileReader` и `FileWriter`
+   Эти классы являются прямыми реализациями символьных потоков для работы с текстовыми файлами. `FileReader` позволяет читать данные в виде символов из файла, а `FileWriter` — записывать текстовые данные в файл.
+
+2. `BufferedReader` и `BufferedWriter`
+   Добавляют буферизацию, что делает операции более эффективными за счёт хранения данных в буфере до тех пор, пока он не заполнится.
+
+3. `InputStreamReader` и `OutputStreamWriter`
+   Эти классы позволяют преобразовать байтовые потоки в символьные. Они используют указанный набор символов для декодирования байтов в символы (`InputStreamReader`) или кодирования символов в байты (`OutputStreamWriter`).
 [К оглавлению](#IO)
 
 # 10. Что такое буферизированный поток?
+
+Буферизированный поток — это поток ввода-вывода в Java, который использует внутренний буфер памяти для повышения производительности при чтении и записи данных. Он работает за счёт временного хранения данных в буфере, что позволяет сократить количество обращений к источнику данных или целевому устройству (например, файл, сеть) и уменьшить накладные расходы на операции ввода-вывода.
++ Буфер — это промежуточное хранилище в памяти, в которое данные сначала считываются или записываются, прежде чем они попадут в источник данных или выйдут из него.
+
+Чтение: При чтении данных, вместо того чтобы обращаться к источнику (например, к файлу) каждый раз за одним символом или байтом, данные загружаются большими блоками в буфер. Когда вы запрашиваете данные, они берутся из буфера, пока буфер не опустеет. Затем буфер снова заполняется из источника.
+
+Запись: При записи данных они сначала накапливаются в буфере. Когда буфер заполняется или вызывается метод flush(), все данные из буфера записываются в конечное устройство (например, файл или сеть) единым блоком, что снижает количество операций записи.
+#### Основные классы буферизированных потоков в Java
+Байтовые буферизированные потоки:
++ `BufferedInputStream` — буферизированный поток для чтения байтов.
++ `BufferedOutputStream` — буферизированный поток для записи байтов.
+```java
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class BufferedInputStreamExample {
+    public static void main(String[] args) {
+        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream("example.txt"))) {
+            int data;
+            while ((data = bis.read()) != -1) {
+                System.out.print((char) data);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+```java
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class BufferedOutputStreamExample {
+    public static void main(String[] args) {
+        try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("output.txt"))) {
+            String content = "Hello, World!";
+            bos.write(content.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+Символьные буферизированные потоки:
++ `BufferedReader` — буферизированный поток для чтения символов.
++ `BufferedWriter` — буферизированный поток для записи символов.
+```java
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class BufferedReaderExample {
+    public static void main(String[] args) {
+        try (BufferedReader br = new BufferedReader(new FileReader("example.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+```java
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class BufferedWriterExample {
+    public static void main(String[] args) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("output.txt"))) {
+            bw.write("Hello, Buffered World!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+#### Как буферизация реализована внутри?
+Буферизация работает за счёт использования внутреннего массива байтов или символов в потоке:
+
+1)Внутренний буфер: Поток использует массив (например, byte[] или char[]) в памяти для временного хранения данных. Размер буфера можно указать при создании буферизированного потока. Если размер не указан, используется размер по умолчанию.
+
+2)Чтение данных: При чтении данных из источника (например, файла) данные считываются не по одному символу, а большими блоками, и сохраняются в буфер. Когда данные запрашиваются, они извлекаются из буфера до тех пор, пока буфер не опустеет. Затем буфер снова заполняется.
+
+3)Запись данных: При записи данные сначала накапливаются в буфере. Когда буфер заполняется, либо когда вызывается метод flush(), буфер отправляет данные в целевое устройство (например, файл).
+#### Методы, связанные с буферизацией
++ flush() — сбрасывает содержимое буфера в целевое устройство. Обычно вызывается в конце работы с потоком или при необходимости записать данные немедленно. 
++ close() — закрывает поток и освобождает все связанные ресурсы. При закрытии потока автоматически вызывается flush().
 
 [К оглавлению](#IO)
 
 # 11. Какие классы-обёртки позволяют ускорить чтение или запись за счет использования буфера?
 
+`BufferedInputStream` Оборачивает обычный поток ввода, добавляя к нему буфер. Это позволяет считывать данные большими блоками, а не по одному байту, что увеличивает производительность.
+```java
+FileInputStream fileInput = new FileInputStream("file.txt");
+BufferedInputStream bufferedInput = new BufferedInputStream(fileInput);
+```
+`BufferedOutputStream` Оборачивает поток вывода, добавляя буфер. Данные накапливаются в буфере и записываются в целевое устройство одним большим блоком, что уменьшает количество операций записи.
+```java
+FileOutputStream fileOutput = new FileOutputStream("output.txt");
+BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
+```
+`BufferedReader` Оборачивает символьный поток ввода и добавляет буфер для ускорения чтения строк. Также предоставляет удобный метод readLine(), который позволяет читать файл построчно.
+```java
+FileReader fileReader = new FileReader("file.txt");
+BufferedReader bufferedReader = new BufferedReader(fileReader);
+```
+`BufferedWriter` Оборачивает символьный поток вывода, добавляя буфер. Данные накапливаются в буфере, прежде чем записываются в целевое устройство, что увеличивает производительность.
+```java
+FileWriter fileWriter = new FileWriter("output.txt");
+BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+```
+#### Как эти классы ускоряют чтение и запись?
++ Считывание больших блоков данных вместо поэлементного чтения снижает количество обращений к источнику данных.
++ Запись данных одним блоком уменьшает количество операций записи на диск или в сеть.
++ Буферизация позволяет оптимизировать работу с медленными источниками данных, такими как файловая система или сетевые соединения.
+
 [К оглавлению](#IO)
 
 # 12. Как осуществляется ввод и вывод из командной строки?
 
+Ввод и вывод из командной строки в Java осуществляется с использованием класса `Scanner` для ввода и класса `System.out` для вывода.
++ Класс `Scanner` позволяет считывать данные из различных источников, в том числе из командной строки (консоли). Чаще всего `Scanner` используется для чтения данных, введённых пользователем с клавиатуры.
+```java
+import java.util.Scanner;
+
+public class ConsoleInputExample {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);  // Создаём объект Scanner для чтения данных из System.in
+
+        System.out.println("Введите ваше имя: ");
+        String name = scanner.nextLine();  // Считываем строку, введённую пользователем
+
+        System.out.println("Введите ваш возраст: ");
+        int age = scanner.nextInt();  // Считываем число (целое) от пользователя
+
+        System.out.println("Привет, " + name + "! Тебе " + age + " лет.");
+        
+        scanner.close();  // Закрываем Scanner для освобождения ресурсов
+    }
+}
+```
++ Для вывода данных на консоль в Java используется `System.out`, который предоставляет методы для вывода текста.
+```java
+public class ConsoleOutputExample {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");  // Вывод строки с переводом строки в конце
+        System.out.print("Введите число: ");  // Вывод строки без перевода строки
+        System.out.printf("Число с форматированием: %d%n", 42);  // Форматированный вывод
+    }
+}
+```
++ Хотя `Scanner` является самым удобным способом для чтения данных из командной строки, в некоторых случаях можно использовать `System.in` напрямую, особенно если требуется считывать данные в байтовом формате.
+```java
+import java.io.IOException;
+
+public class SystemInExample {
+    public static void main(String[] args) {
+        System.out.println("Введите символ: ");
+        try {
+            int input = System.in.read();  // Чтение байта из входного потока
+            System.out.println("Вы ввели: " + (char) input);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
 [К оглавлению](#IO)
 
 # 13. Что такое класс Console? Расскажите его АПИ.
 
+Класс `Console` в Java предоставляет удобный способ взаимодействия с консолью (терминалом) для чтения ввода и вывода данных. Он является частью пакета `java.io` и предоставляет методы для чтения текстового ввода, а также для форматированного вывода. В отличие от `Scanner` или `System.in`, класс `Console` имеет ряд дополнительных функций, таких как безопасное считывание паролей без отображения на экране.
+`Console` используется, когда программа запускается в реальной консольной среде (например, в командной строке Windows или терминале Linux/Mac). Однако Console недоступен в некоторых средах, таких как IDE (например, Eclipse или IntelliJ IDEA), поэтому для корректного использования программа должна быть запущена из настоящей командной строки.
+Для работы с `Console` нужно использовать статический метод System.console(), который возвращает экземпляр `Console`, если он доступен, или null, если консоль недоступна.
+```java
+Console console = System.console();
+if (console == null) {
+    System.out.println("Консоль недоступна.");
+    return;
+}
+
+Пример создания объекта Console
+```
+#### Основные методы класса `Console`
+1. Чтение строк
++ String readLine() — считывает строку, введённую пользователем, до нажатия клавиши Enter. 
++ String readLine(String fmt, Object... args) — выводит отформатированную строку перед считыванием ввода и затем считывает введённую строку.
+```java
+Console console = System.console();
+String name = console.readLine("Введите ваше имя: ");
+System.out.println("Привет, " + name + "!");
+```
+2. Чтение пароля
++ char[] readPassword() — считывает пароль, введённый пользователем, без отображения символов на экране.
++ char[] readPassword(String fmt, Object... args) — выводит отформатированную строку перед считыванием пароля и затем считывает пароль без отображения символов.
+```java
+Console console = System.console();
+char[] password = console.readPassword("Введите пароль: ");
+// Обработка пароля...
+
+Пароль считывается как массив char[], а не как строка (String), 
+чтобы минимизировать риск утечки данных, поскольку char[] можно быстро о
+бнулить после использования.
+```
+3. Вывод в консоль
++ void format(String fmt, Object... args) — форматированный вывод в консоль, аналогичный System.out.printf().
++ void printf(String fmt, Object... args) — то же самое, что и format(), выполняет форматированный вывод.
+```java
+console.printf("Привет, %s! Твой возраст: %d%n", "Денчик", 30);
+```
+4. Управление вводом и выводом
++ Reader reader() — возвращает объект Reader, связанный с консолью, который можно использовать для более гибкого управления вводом.
++ PrintWriter writer() — возвращает объект PrintWriter, связанный с консолью, для более гибкого управления выводом.
+```java
+Console console = System.console();
+Reader reader = console.reader();
+// Чтение данных с использованием Reader
+
+Пример использования Reader
+```
+```java
+Console console = System.console();
+PrintWriter writer = console.writer();
+writer.println("Это пример вывода через PrintWriter.");
+
+Пример использования PrintWriter
+```
+#### Особенности и ограничения Console:
++ Безопасное чтение паролей: Одной из главных особенностей класса Console является возможность безопасного считывания пароля с помощью метода readPassword(). Это позволяет избежать отображения пароля на экране, что делает Console предпочтительным выбором при работе с конфиденциальными данными.
++ Доступность: Console не всегда доступен. Если программа запущена в среде, где консоль недоступна (например, внутри IDE), метод System.console() вернёт null. Поэтому перед использованием Console необходимо проверять его наличие.
++ Только для консольного ввода и вывода: Класс Console предназначен только для текстового взаимодействия в консольной среде. Он не предназначен для работы с графическими интерфейсами или нестандартными источниками ввода/вывода.
+```java
+Ниже приведён пример программы, которая использует Console
+для ввода данных и безопасного ввода пароля
+
+import java.io.Console;
+
+public class ConsoleExample {
+    public static void main(String[] args) {
+        Console console = System.console();
+
+        if (console == null) {
+            System.out.println("Консоль недоступна.");
+            return;
+        }
+
+        // Считывание имени
+        String username = console.readLine("Введите имя пользователя: ");
+
+        // Считывание пароля
+        char[] password = console.readPassword("Введите пароль: ");
+
+        // Вывод отформатированного сообщения
+        console.printf("Добро пожаловать, %s!%n", username);
+
+        // Обнуление массива пароля после использования
+        java.util.Arrays.fill(password, ' ');
+    }
+}
+
+```
 [К оглавлению](#IO)
 
 # 14. Что такое поток данных? Data stream.
+
+Поток данных (Data Stream) в Java — это концепция, представляющая собой непрерывный поток байтов или символов, используемый для чтения или записи данных. Потоки данных позволяют Java-программам взаимодействовать с внешними источниками данных, такими как файлы, сетевые соединения, консольный ввод/вывод и другие устройства.
+В Java под термином Data Stream часто подразумевают специализированные классы-обёртки, такие как DataInputStream и DataOutputStream, которые позволяют считывать и записывать данные примитивных типов (числа, строки и т. д.) в удобном формате.
+Эти классы работают поверх базовых потоков (InputStream и OutputStream) и позволяют работать с примитивами (например, int, float, boolean) так, будто они являются объектами. Это делает их использование более удобным, чем ручная работа с байтами.
+#### API классов Data Stream
+1. `DataOutputStream` Этот класс является обёрткой над байтовым потоком `OutputStream` и предоставляет методы для записи примитивных типов данных:
++ writeInt(int v) — записывает целое число.
++ writeDouble(double v) — записывает число с плавающей точкой.
++ writeBoolean(boolean v) — записывает логическое значение.
++ writeUTF(String s) — записывает строку в формате UTF-8.
++ writeLong(long v), writeFloat(float v), и другие методы для записи примитивных типов.
+2. `DataInputStream` Этот класс является обёрткой над байтовым потоком `InputStream` и предоставляет методы для чтения примитивных типов данных:
++ readInt() — читает целое число.
++ readDouble() — читает число с плавающей точкой.
++ readBoolean() — читает логическое значение.
++ readUTF() — читает строку в формате UTF-8.
++ readLong(), readFloat(), и другие методы для чтения примитивных типов.
+
+Внутри DataInputStream и DataOutputStream работают с байтовым потоком данных, упаковывая и распаковывая данные примитивных типов в последовательности байтов. Например, при записи целого числа (int) метод writeInt() преобразует число в 4 байта (поскольку int занимает 4 байта) и записывает эти байты в поток. При чтении числа методом readInt() те же 4 байта преобразуются обратно в int.
+
+#### Особенности использования Data Stream
+1. Фиксированный формат: При записи данных в бинарном формате важно помнить, что порядок и тип записываемых данных должен точно соответствовать порядку и типу данных при чтении.
+2. Бинарные данные: Data Streams работают с бинарными данными, что позволяет сэкономить место по сравнению с текстовыми форматами, но требует соблюдения формата при чтении и записи.
+3. Удобство работы с примитивами: DataInputStream и DataOutputStream значительно упрощают операции с примитивными типами данных, скрывая детали кодировки и декодировки байтов.
+#### Когда использовать Data Streams?
++ Когда вам нужно записывать и считывать примитивные типы данных или строки в бинарном формате.
++ Когда важна эффективность хранения данных, поскольку бинарный формат может занимать меньше места, чем текстовый.
++ Когда вы разрабатываете собственный формат хранения данных, который будет использоваться только вашим приложением.
+```java
+Пример использования DataInputStream и DataOutputStream
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class DataStreamExample {
+    public static void main(String[] args) {
+        // Запись данных в файл с использованием DataOutputStream
+        try (DataOutputStream dataOut = new DataOutputStream(new FileOutputStream("data.bin"))) {
+            dataOut.writeInt(123);         // Записываем целое число
+            dataOut.writeDouble(45.67);    // Записываем число с плавающей точкой
+            dataOut.writeBoolean(true);    // Записываем логическое значение
+            dataOut.writeUTF("Привет!");   // Записываем строку в формате UTF-8
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Чтение данных из файла с использованием DataInputStream
+        try (DataInputStream dataIn = new DataInputStream(new FileInputStream("data.bin"))) {
+            int number = dataIn.readInt();         // Чтение целого числа
+            double decimal = dataIn.readDouble();  // Чтение числа с плавающей точкой
+            boolean flag = dataIn.readBoolean();   // Чтение логического значения
+            String text = dataIn.readUTF();        // Чтение строки в формате UTF-8
+
+            System.out.println("Целое число: " + number);
+            System.out.println("Число с плавающей точкой: " + decimal);
+            System.out.println("Логическое значение: " + flag);
+            System.out.println("Строка: " + text);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
 
 [К оглавлению](#IO)
 
 # 15. Что такое поток объектов, Object stream.
 
+Поток объектов (Object Stream) в Java — это механизм для сериализации и десериализации объектов. Он позволяет записывать объекты в поток данных и считывать их обратно, что даёт возможность сохранять состояние объектов и передавать их, например, через сеть или записывать в файл.
+Object Stream работает на основе механизма сериализации, который позволяет преобразовывать объект в последовательность байтов, что позволяет его сохранять или передавать. Обратный процесс — десериализация — восстанавливает объект из этой последовательности байтов.
+#### Основные классы Object Stream
+1. `ObjectOutputStream` Этот класс используется для сериализации объектов, т.е. записи объекта в поток в виде байтовой последовательности.
+```java
+Конструктор:
+
+ObjectOutputStream(OutputStream out)
+    
+Создаёт ObjectOutputStream, который записывает данные в указанный OutputStream
+```
+Основные методы:
++ void writeObject(Object obj) — записывает объект в поток. Объект должен быть сериализуемым (имплементировать интерфейс Serializable).
++ void flush() — очищает буфер и записывает все данные в целевой поток.
+```java
+Пример использования ObjectOutputStream
+
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
+import java.io.IOException;
+
+public class ObjectOutputStreamExample {
+    public static void main(String[] args) {
+        try (FileOutputStream fileOut = new FileOutputStream("objectData.bin");
+             ObjectOutputStream objOut = new ObjectOutputStream(fileOut)) {
+            
+            MyClass myObject = new MyClass("Пример объекта", 42);
+            objOut.writeObject(myObject); // Сериализация объекта
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+2. `ObjectInputStream` Этот класс используется для десериализации объектов, т.е. чтения объекта из потока.
+```java
+Конструктор
+
+ObjectInputStream(InputStream in)
+
+Создаёт ObjectInputStream, который считывает данные из указанного InputStream.
+```
+Основные методы:
++ Object readObject() — считывает объект из потока. Метод возвращает Object, поэтому результат часто приводят к нужному типу.
++ void close() — закрывает поток и освобождает ресурсы
+```java
+Пример использования ObjectInputStream
+
+import java.io.FileInputStream;
+import java.io.ObjectInputStream;
+import java.io.IOException;
+
+public class ObjectInputStreamExample {
+public static void main(String[] args) {
+try (FileInputStream fileIn = new FileInputStream("objectData.bin");
+ObjectInputStream objIn = new ObjectInputStream(fileIn)) {
+
+            MyClass myObject = (MyClass) objIn.readObject(); // Десериализация объекта
+            System.out.println(myObject);
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+#### Сериализация и интерфейс Serializable
+Для того чтобы объект можно было сериализовать с помощью ObjectOutputStream, класс объекта должен реализовать интерфейс Serializable. Этот интерфейс является маркерным (не содержит методов) и служит сигналом Java-машине, что объекты этого класса могут быть преобразованы в байтовую последовательность.
+#### Особенности и ограничения потоков объектов:
++ Сериализация требует Serializable: Объект, который нужно записать в поток, должен реализовать интерфейс Serializable. Если этого не сделать, при попытке сериализации будет выброшено исключение java.io.NotSerializableException.
++ Поле transient: Поля, помеченные ключевым словом transient, не сериализуются. Это полезно для данных, которые не нужно сохранять (например, временные данные или данные, которые не должны сохраняться из соображений безопасности).
++ Версии классов: При изменении структуры класса (добавление/удаление полей) возможны проблемы при десериализации старых версий. Для этого используется serialVersionUID — специальное поле, которое служит для управления версиями класса.
+```java
+Пример полного кода с сериализацией и десериализацией
+
+import java.io.*;
+
+public class SerializationExample {
+    public static void main(String[] args) {
+        // Сериализация объекта
+        try (FileOutputStream fileOut = new FileOutputStream("example.bin");
+             ObjectOutputStream objOut = new ObjectOutputStream(fileOut)) {
+
+            Person person = new Person("Денчик", 35);
+            objOut.writeObject(person); // Сериализация
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Десериализация объекта
+        try (FileInputStream fileIn = new FileInputStream("example.bin");
+             ObjectInputStream objIn = new ObjectInputStream(fileIn)) {
+
+            Person deserializedPerson = (Person) objIn.readObject(); // Десериализация
+            System.out.println("Десериализованный объект: " + deserializedPerson);
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class Person implements Serializable {
+    private static final long serialVersionUID = 1L; // Идентификатор версии класса
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return "Person{name='" + name + "', age=" + age + "}";
+    }
+}
+```
+#### Преимущества использования Object Stream
++ Простота работы с объектами: Позволяет напрямую записывать и считывать объекты, не преобразовывая их вручную в байты.
++ Сохранение состояния: Легко сохранять состояние сложных объектов (содержат другие объекты или коллекции), что удобно для долговременного хранения или передачи данных.
++ Мощное API: ObjectInputStream и ObjectOutputStream поддерживают большинство стандартных примитивов и объекты коллекций, таких как ArrayList.
+#### Недостатки использования Object Stream
++ Требование к сериализуемости: Классы должны реализовывать интерфейс Serializable, что иногда может быть сложно для сложных структур.
++ Неэффективность при изменении классов: При изменении полей класса могут возникнуть проблемы при десериализации старых данных, если не управлять версиями с помощью serialVersionUID.
++ Небезопасность: Сериализация не является безопасной, если данные могут быть перехвачены или модифицированы. Лучше избегать её использования для передачи чувствительной информации.
 [К оглавлению](#IO)
 
 # 16. Что такое Path? Как он реализуется на разных ОС?
 
+Path — это интерфейс в Java, представляющий собой путь к файлу или директории в файловой системе. Он является частью пакета java.nio.file (NIO — New I/O), который был введён в Java 7, чтобы обеспечить более современный и удобный API для работы с файлами и путями по сравнению с устаревшим java.io.File.
+Path можно рассматривать как абстракцию для пути к файлу или директории. В Java Path представлен интерфейсом, который позволяет работать с файловыми путями, обрабатывать их части (каталоги, имена файлов), нормализовать путь, соединять пути и выполнять другие операции.
+#### Основные классы и интерфейсы, связанные с Path:
++ Path — основной интерфейс, представляющий путь.
++ Paths — класс с утилитарными методами для создания объектов Path.
++ Files — вспомогательный класс для работы с файлами и директориями, используя Path.
+```java
+Пример создания объекта Path
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class PathExample {
+    public static void main(String[] args) {
+        // Создание объекта Path
+        Path path = Paths.get("/users/denchik/documents/example.txt");
+
+        // Вывод информации о пути
+        System.out.println("Путь: " + path);
+        System.out.println("Имя файла: " + path.getFileName());
+        System.out.println("Родительская директория: " + path.getParent());
+        System.out.println("Количество элементов в пути: " + path.getNameCount());
+    }
+}
+```
+#### Реализация Path на разных операционных системах
+Path является платформонезависимым интерфейсом. Это означает, что он одинаково работает на различных операционных системах, абстрагируясь от особенностей каждой платформы. Java использует внутренние реализации Path в зависимости от операционной системы, чтобы учитывать особенности её файловой системы.
+
+##### Примеры различий между ОС:
++ Windows использует обратные слэши (\) как разделители в пути, а также поддерживает устройство в начале пути (например, C:\).
++ UNIX-подобные системы (например, Linux, macOS) используют прямые слэши (/) в качестве разделителей, и у них отсутствует концепция устройства.
+
+Java автоматически обрабатывает эти различия. Например, при создании объекта Path, если код выполняется на Windows, пути автоматически адаптируются к этой ОС.
+#### Как Java управляет различиями между ОС:
+Java использует специальный класс `FileSystem`, который определяет поведение файловой системы в зависимости от платформы. Этот класс предоставляет конкретную реализацию Path для каждой системы:
++ На Windows используется WindowsFileSystem, и объект Path создаётся как WindowsPath.
++ На Linux/UNIX используется UnixFileSystem, и объект Path создаётся как UnixPath.
+
+Таким образом, когда вы вызываете Paths.get("путь"), Java создаёт объект Path, подходящий для текущей ОС.
+#### Как Java обрабатывает пути на разных ОС?
++ Разделители путей: Java автоматически выбирает правильный разделитель (/ или \) в зависимости от ОС.
++ Корневые элементы: На Windows путь может начинаться с имени устройства (C:\), а на UNIX-подобных ОС путь начинается с корня (/). Java корректно интерпретирует такие различия.
++ Форматирование пути: Java нормализует пути, удаляя избыточные элементы, например . (текущая директория) или .. (родительская директория).
+```java
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class CrossPlatformPathExample {
+    public static void main(String[] args) {
+        // Используем Paths.get() для создания платформонезависимого пути
+        Path path = Paths.get("folder", "subfolder", "file.txt");
+
+        // Выводим путь в зависимости от ОС
+        System.out.println("Путь: " + path);
+        
+        // Нормализация пути
+        Path normalizedPath = path.normalize();
+        System.out.println("Нормализованный путь: " + normalizedPath);
+    }
+}
+```
+#### Основные методы интерфейса Path:
++ getFileName() — возвращает имя файла или последнего элемента пути.
++ getParent() — возвращает родительский путь.  
++ getRoot() — возвращает корневой элемент пути (например, C:\ на Windows или / на UNIX).
++ resolve(Path other) — добавляет указанный путь к текущему пути.
++ relativize(Path other) — создаёт относительный путь между текущим и указанным путём.
++ normalize() — удаляет избыточные элементы из пути (. и ..).
++ toAbsolutePath() — возвращает абсолютный путь.
++ toUri() — преобразует путь в URI.
+#### Работа с классом Files:
+`Files` — это утилитарный класс, который работает с `Path` и предоставляет методы для взаимодействия с файловой системой:
++ Files.exists(Path path) — проверяет существование файла или директории.
++ Files.createFile(Path path) — создаёт новый файл.
++ Files.createDirectory(Path path) — создаёт новую директорию.
++ Files.copy(Path source, Path target) — копирует файл или директорию.
++ Files.move(Path source, Path target) — перемещает или переименовывает файл/директорию.
++ Files.delete(Path path) — удаляет файл или директорию.
+```java
+Пример работы с классом Files
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.IOException;
+
+public class FilesExample {
+    public static void main(String[] args) {
+        Path path = Paths.get("example.txt");
+
+        try {
+            // Создание файла, если его нет
+            if (!Files.exists(path)) {
+                Files.createFile(path);
+                System.out.println("Файл создан: " + path.toAbsolutePath());
+            }
+
+            // Запись данных в файл
+            Files.write(path, "Привет, Денчик!".getBytes());
+            System.out.println("Данные записаны.");
+
+            // Чтение данных из файла
+            String content = Files.readString(path);
+            System.out.println("Содержимое файла: " + content);
+
+            // Удаление файла
+            Files.delete(path);
+            System.out.println("Файл удалён.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
 [К оглавлению](#IO)
 
 # 17. Как получить список файлов?
 
-Чтобы получить список файлов в директории в Java, можно использовать класс Files из пакета java.nio.file, который
-предоставляет методы для работы с файлами и директориями. Вот несколько способов, как это сделать:
++ Для простых задач можно использовать класс File и его метод listFiles().
+```java
+import java.io.File;
 
-1. Использование Files.list()
-   Метод Files.list(Path dir) возвращает поток (Stream<Path>) файлов в указанной директории. Этот метод подходит для
-   получения списка всех файлов и поддиректорий в заданной директории.
+public class ListFilesExample {
+    public static void main(String[] args) {
+        // Указываем директорию, в которой нужно получить список файлов
+        File directory = new File("путь/к/вашей/директории");
 
-2. Использование Files.walk()
-   Если вам нужно рекурсивно просмотреть все файлы и подкаталоги, вы можете использовать метод Files.walk(Path start).
+        // Получаем массив файлов и поддиректорий
+        File[] filesList = directory.listFiles();
 
-3. Использование DirectoryStream
-   Также можно использовать класс DirectoryStream для получения списка файлов в директории. Этот подход более
-   традиционный и предоставляет возможность фильтрации файлов.
+        if (filesList != null) {
+            for (File file : filesList) {
+                // Проверяем, является ли это файлом или директорией
+                if (file.isFile()) {
+                    System.out.println("Файл: " + file.getName());
+                } else if (file.isDirectory()) {
+                    System.out.println("Директория: " + file.getName());
+                }
+            }
+        } else {
+            System.out.println("Директория не существует или доступ к ней невозможен.");
+        }
+    }
+}
+```
++ Для более сложных задач и фильтрации лучше использовать классы Path и Files из пакета java.nio.file.
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class ListFilesWithPathExample {
+    public static void main(String[] args) {
+        // Указываем путь к директории
+        Path directory = Paths.get("путь/к/вашей/директории");
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory)) {
+            for (Path path : stream) {
+                if (Files.isRegularFile(path)) {
+                    System.out.println("Файл: " + path.getFileName());
+                } else if (Files.isDirectory(path)) {
+                    System.out.println("Директория: " + path.getFileName());
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Ошибка при чтении директории: " + e.getMessage());
+        }
+    }
+}
+```
++ Files.list() и Stream API позволяют гибко управлять потоками данных и применять фильтры.
+```java
+import java.nio.file.*;
+import java.io.IOException;
+import java.util.stream.Stream;
+
+public class ListFilesWithStreamExample {
+    public static void main(String[] args) {
+        // Указываем путь к директории
+        Path directory = Paths.get("путь/к/вашей/директории");
+
+        try (Stream<Path> paths = Files.list(directory)) {
+            paths.forEach(path -> {
+                if (Files.isRegularFile(path)) {
+                    System.out.println("Файл: " + path.getFileName());
+                } else if (Files.isDirectory(path)) {
+                    System.out.println("Директория: " + path.getFileName());
+                }
+            });
+        } catch (IOException e) {
+            System.out.println("Ошибка при чтении директории: " + e.getMessage());
+        }
+    }
+}
+```
 
 [К оглавлению](#IO)
 
 # 18. Как проверить что файловая сущность является файлом или папкой?
++ File: Используйте методы isFile() и isDirectory() для простых задач проверки.
+```java
+import java.io.File;
+
+public class FileCheckExample {
+    public static void main(String[] args) {
+        // Создание объекта File для проверки
+        File file = new File("путь/к/вашему/файлу_или_папке");
+
+        // Проверка, является ли это файлом
+        if (file.isFile()) {
+            System.out.println("Это файл.");
+        } else if (file.isDirectory()) {
+            System.out.println("Это директория.");
+        } else {
+            System.out.println("Это несуществующая файловая сущность.");
+        }
+    }
+}
+```
++ Path и Files: Используйте методы Files.isRegularFile() и Files.isDirectory() для более мощного и современного подхода к проверке файловых сущностей.
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class PathCheckExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для проверки
+        Path path = Paths.get("путь/к/вашему/файлу_или_папке");
+
+        try {
+            // Проверка, является ли это файлом
+            if (Files.isRegularFile(path)) {
+                System.out.println("Это файл.");
+            } else if (Files.isDirectory(path)) {
+                System.out.println("Это директория.");
+            } else {
+                System.out.println("Это несуществующая файловая сущность или специальный файл.");
+            }
+        } catch (IOException e) {
+            System.out.println("Ошибка при проверке пути: " + e.getMessage());
+        }
+    }
+}
+```
++ В новых проектах предпочтительно использовать API java.nio.file, так как он предоставляет более продвинутые и удобные возможности для работы с файловой системой.
+
 
 [К оглавлению](#IO)
 
 # 19. Как удалить файл?
 
+Класс File предоставляет метод delete(), который удаляет файл или пустую директорию.
+```java
+import java.io.File;
+
+public class DeleteFileExample {
+    public static void main(String[] args) {
+        // Создание объекта File для файла, который нужно удалить
+        File file = new File("путь/к/вашему/файлу.txt");
+
+        // Удаление файла
+        if (file.delete()) {
+            System.out.println("Файл успешно удалён.");
+        } else {
+            System.out.println("Не удалось удалить файл.");
+        }
+    }
+}
+```
+Современный подход к удалению файла заключается в использовании Path и метода Files.delete() или Files.deleteIfExists()
+```java
+Пример с использованием Files.delete()
+
+import java.nio.file.*;
+import java.io.IOException;
+
+public class DeleteFileWithPathExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для файла, который нужно удалить
+        Path path = Paths.get("путь/к/вашему/файлу.txt");
+
+        try {
+            // Удаление файла
+            Files.delete(path);
+            System.out.println("Файл успешно удалён.");
+        } catch (NoSuchFileException e) {
+            System.out.println("Файл не найден.");
+        } catch (IOException e) {
+            System.out.println("Ошибка при удалении файла: " + e.getMessage());
+        }
+    }
+}
+
+```
+```java
+Пример с использованием Files.deleteIfExists()
+
+import java.nio.file.*;
+import java.io.IOException;
+
+public class DeleteFileIfExistsExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для файла, который нужно удалить
+        Path path = Paths.get("путь/к/вашему/файлу.txt");
+
+        try {
+            // Удаление файла, если он существует
+            boolean isDeleted = Files.deleteIfExists(path);
+            if (isDeleted) {
+                System.out.println("Файл успешно удалён.");
+            } else {
+                System.out.println("Файл не найден.");
+            }
+        } catch (IOException e) {
+            System.out.println("Ошибка при удалении файла: " + e.getMessage());
+        }
+    }
+}
+```
++ delete() в File и Files бросает исключение, если файл не найден, поэтому подходит для ситуаций, когда вы точно ожидаете, что файл существует.
++ deleteIfExists() полезен, когда файл может не существовать, и вам не нужно бросать исключение в таком случае.
+
 [К оглавлению](#IO)
 
 # 20. Как переместить файл?
+Старый способ перемещения файла с использованием класса File — это просто выполнить копирование в новое место и затем удалить исходный файл. В классе File нет прямого метода для перемещения, поэтому придётся использовать метод renameTo(), который работает как для переименования, так и для перемещения файла.
+```java
+Пример с использованием File.renameTo()
+
+import java.io.File;
+
+public class MoveFileExample {
+    public static void main(String[] args) {
+        // Создание объекта File для файла, который нужно переместить
+        File sourceFile = new File("путь/к/вашему/исходному_файлу.txt");
+        // Новый путь, куда нужно переместить файл
+        File destFile = new File("путь/к/новой/директории/файл.txt");
+
+        // Перемещение файла
+        if (sourceFile.renameTo(destFile)) {
+            System.out.println("Файл успешно перемещён.");
+        } else {
+            System.out.println("Не удалось переместить файл.");
+        }
+    }
+}
+
+```
+Современный и более надёжный способ — это использование Path и метода Files.move(), который специально предназначен для перемещения файла.
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class MoveFileWithPathExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для исходного файла
+        Path sourcePath = Paths.get("путь/к/вашему/исходному_файлу.txt");
+        // Новый путь, куда нужно переместить файл
+        Path targetPath = Paths.get("путь/к/новой/директории/файл.txt");
+
+        try {
+            // Перемещение файла
+            Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Файл успешно перемещён.");
+        } catch (IOException e) {
+            System.out.println("Ошибка при перемещении файла: " + e.getMessage());
+        }
+    }
+}
+```
+#### Дополнительные параметры перемещения
+Метод Files.move() поддерживает использование опций из StandardCopyOption:
++ StandardCopyOption.REPLACE_EXISTING — заменяет файл в целевой директории, если он уже существует.
++ StandardCopyOption.ATOMIC_MOVE — выполняет атомарное перемещение (если поддерживается файловой системой), что гарантирует, что файл будет перемещён либо полностью, либо не будет перемещён вовсе.
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class MoveFileWithOptionsExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для исходного файла
+        Path sourcePath = Paths.get("путь/к/вашему/исходному_файлу.txt");
+        // Новый путь, куда нужно переместить файл
+        Path targetPath = Paths.get("путь/к/новой/директории/файл.txt");
+
+        try {
+            // Перемещение файла с заменой и атомарным перемещением
+            Files.move(sourcePath, targetPath, 
+                       StandardCopyOption.REPLACE_EXISTING, 
+                       StandardCopyOption.ATOMIC_MOVE);
+            System.out.println("Файл успешно перемещён с использованием атомарного перемещения.");
+        } catch (IOException e) {
+            System.out.println("Ошибка при перемещении файла: " + e.getMessage());
+        }
+    }
+}
+```
++ renameTo() в File прост в использовании, но не всегда надёжен. Он не предоставляет детальной информации о возможных ошибках и может не сработать на некоторых файловых системах.
++ Files.move() в java.nio.file является более гибким и надёжным, поддерживает обработку исключений и дополнительные опции.
 
 [К оглавлению](#IO)
 
 # 21. Как управлять атрибутами файла?
 
+В Java управление атрибутами файла (такими как дата создания, права доступа и другие метаданные) осуществляется с помощью API java.nio.file. В частности, используются классы Files, Path, и различные интерфейсы из пакета java.nio.file.attribute.
+1. Чтение базовых атрибутов файла
+   Для чтения базовых атрибутов (дата создания, последняя модификация и т.д.) можно использовать интерфейс BasicFileAttributes с помощью метода Files.readAttributes().
+```java
+import java.nio.file.*;
+import java.nio.file.attribute.*;
+import java.io.IOException;
+
+public class BasicFileAttributesExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для файла
+        Path path = Paths.get("путь/к/вашему/файлу.txt");
+
+        try {
+            // Чтение базовых атрибутов файла
+            BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+
+            System.out.println("Дата создания: " + attributes.creationTime());
+            System.out.println("Последняя модификация: " + attributes.lastModifiedTime());
+            System.out.println("Размер файла: " + attributes.size() + " байт");
+            System.out.println("Является ли это директорией: " + attributes.isDirectory());
+        } catch (IOException e) {
+            System.out.println("Ошибка при чтении атрибутов файла: " + e.getMessage());
+        }
+    }
+}
+```
+2. Изменение базовых атрибутов файла
+   Для изменения атрибутов, таких как время последней модификации, используется метод Files.setAttribute().
+```java
+import java.nio.file.*;
+import java.io.IOException;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+
+public class SetFileAttributeExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для файла
+        Path path = Paths.get("путь/к/вашему/файлу.txt");
+
+        try {
+            // Установка времени последней модификации на текущее время
+            FileTime newTime = FileTime.from(Instant.now());
+            Files.setAttribute(path, "basic:lastModifiedTime", newTime);
+
+            System.out.println("Время последней модификации изменено.");
+        } catch (IOException e) {
+            System.out.println("Ошибка при изменении атрибутов файла: " + e.getMessage());
+        }
+    }
+}
+```
+3. Управление правами доступа
+   Для управления правами доступа в Java существует интерфейс PosixFileAttributes и класс PosixFilePermissions. Они позволяют работать с POSIX-совместимыми правами доступа (только на UNIX-подобных системах).
+```java
+import java.nio.file.*;
+import java.nio.file.attribute.*;
+import java.io.IOException;
+
+public class FilePermissionsExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для файла
+        Path path = Paths.get("путь/к/вашему/файлу.txt");
+
+        try {
+            // Установка прав доступа (только для UNIX-подобных систем)
+            Set<PosixFilePermission> perms = PosixFilePermissions.fromString("rwxr-x---");
+            Files.setPosixFilePermissions(path, perms);
+
+            System.out.println("Права доступа изменены.");
+        } catch (UnsupportedOperationException e) {
+            System.out.println("POSIX права не поддерживаются на данной системе.");
+        } catch (IOException e) {
+            System.out.println("Ошибка при изменении прав доступа: " + e.getMessage());
+        }
+    }
+}
+```
+4. Чтение и изменение пользовательских атрибутов (xattr)
+   Java позволяет работать с пользовательскими атрибутами, такими как метки или заметки, которые можно добавлять к файлам на поддерживаемых файловых системах. Для этого используется метод Files.getAttribute() и Files.setAttribute().
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class UserDefinedFileAttributesExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для файла
+        Path path = Paths.get("путь/к/вашему/файлу.txt");
+
+        try {
+            // Установка пользовательского атрибута
+            String attributeName = "user.comment";
+            String comment = "Это тестовый файл.";
+            Files.setAttribute(path, attributeName, comment);
+
+            // Чтение пользовательского атрибута
+            String retrievedComment = (String) Files.getAttribute(path, attributeName);
+            System.out.println("Пользовательский комментарий: " + retrievedComment);
+        } catch (IOException e) {
+            System.out.println("Ошибка при работе с пользовательскими атрибутами: " + e.getMessage());
+        }
+    }
+}
+```
+5. Проверка и удаление атрибутов
++ Для проверки существования атрибута можно использовать метод Files.getAttribute().
++ Для удаления атрибута используется метод Files.setAttribute() с null значением для некоторых типов атрибутов, либо с использованием соответствующих методов управления правами.
+####Рекомендации по использованию:
++ BasicFileAttributes — используйте для чтения базовых атрибутов (создание, модификация и т.д.).
++ PosixFileAttributes — подходит для управления правами на UNIX-подобных системах.
++ Пользовательские атрибуты — используйте для добавления меток или комментариев к файлам, если это поддерживается файловой системой.
++ Методы Files.getAttribute() и Files.setAttribute() позволяют управлять атрибутами файлов на более низком уровне и поддерживают различные типы атрибутов.
+
+
 [К оглавлению](#IO)
 
 # 22. Как создать файл?
+Создать файл в Java можно несколькими способами с использованием классов File из пакета java.io и Files из пакета java.nio.file. Каждый из этих методов имеет свои особенности и может быть применён в зависимости от ситуации
+1. Использование класса File (пакет java.io)
+   Старый, но простой способ создать файл — это использовать класс File. Метод createNewFile() позволяет создать новый файл, если его ещё нет в указанной директории.
+```java
+import java.io.File;
+import java.io.IOException;
+
+public class CreateFileExample {
+    public static void main(String[] args) {
+        // Создание объекта File для нового файла
+        File file = new File("путь/к/новому_файлу.txt");
+
+        try {
+            // Создание нового файла
+            if (file.createNewFile()) {
+                System.out.println("Файл успешно создан: " + file.getName());
+            } else {
+                System.out.println("Файл уже существует.");
+            }
+        } catch (IOException e) {
+            System.out.println("Ошибка при создании файла: " + e.getMessage());
+        }
+    }
+}
+```
+2. Использование класса Files (пакет java.nio.file)
+   Современный и более предпочтительный способ создания файла — это использование класса Files вместе с интерфейсом Path. Метод Files.createFile() создаёт файл и выбрасывает исключение, если файл уже существует.
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class CreateFileWithPathExample {
+    public static void main(String[] args) {
+        // Создание объекта Path для нового файла
+        Path path = Paths.get("путь/к/новому_файлу.txt");
+
+        try {
+            // Создание нового файла
+            Files.createFile(path);
+            System.out.println("Файл успешно создан: " + path.getFileName());
+        } catch (FileAlreadyExistsException e) {
+            System.out.println("Файл уже существует.");
+        } catch (IOException e) {
+            System.out.println("Ошибка при создании файла: " + e.getMessage());
+        }
+    }
+}
+```
+3. Создание временного файла Если вам нужно создать временный файл, который не должен сохраняться после завершения программы, можно использовать метод Files.createTempFile().
+```java
+import java.nio.file.*;
+import java.io.IOException;
+
+public class CreateTempFileExample {
+    public static void main(String[] args) {
+        try {
+            // Создание временного файла с префиксом "temp" и суффиксом ".txt"
+            Path tempFile = Files.createTempFile("temp", ".txt");
+            System.out.println("Временный файл создан: " + tempFile.toAbsolutePath());
+        } catch (IOException e) {
+            System.out.println("Ошибка при создании временного файла: " + e.getMessage());
+        }
+    }
+}
+```
+4. Создание файла с указанием прав доступа (только для UNIX-систем)
+   Если нужно создать файл с определёнными правами доступа, это можно сделать с помощью опций FileAttribute в Files.createFile().
+```java
+import java.nio.file.*;
+import java.nio.file.attribute.*;
+import java.io.IOException;
+import java.util.Set;
+
+public class CreateFileWithPermissionsExample {
+    public static void main(String[] args) {
+        Path path = Paths.get("путь/к/новому_файлу.txt");
+
+        try {
+            // Установка прав доступа
+            Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rw-r-----");
+            FileAttribute<Set<PosixFilePermission>> fileAttributes = PosixFilePermissions.asFileAttribute(permissions);
+
+            // Создание файла с заданными правами доступа
+            Files.createFile(path, fileAttributes);
+            System.out.println("Файл успешно создан с правами доступа: " + permissions);
+        } catch (IOException e) {
+            System.out.println("Ошибка при создании файла: " + e.getMessage());
+        }
+    }
+}
+```
+#### Сравнение методов создания файла
++ File.createNewFile(): простой, но не самый надёжный способ. Может не работать на некоторых файловых системах, и отсутствует гибкость при установке прав доступа. 
++ Files.createFile(): более современный способ с поддержкой обработки исключений и возможностью настройки прав доступа.
++ Files.createTempFile(): создаёт временный файл, который автоматически удаляется после завершения программы.
 
 [К оглавлению](#IO)
 
