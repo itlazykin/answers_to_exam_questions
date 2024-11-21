@@ -6,6 +6,7 @@
 + [Lambda](exam_questions/Lambda.md#Lambda)
 + [CollectionsPro](exam_questions/CollectionsPro.md#CollectionsPro)
 + [IO](exam_questions/IO.md#IO)
++ [SQL](exam_questions/SQL.md#SQL)
 
 
 
