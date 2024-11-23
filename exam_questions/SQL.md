@@ -621,30 +621,355 @@ INNER JOIN employees e2 ON e1.manager_id = e2.id;
 [К оглавлению](#SQL)
 
 # 24. Как получить Connection?
+Для получения Connection (соединения с базой данных) в Java, используем JDBC (Java Database Connectivity).
+1. Подключение к базе данных с помощью DriverManager. Для получения соединения с базой данных, нужно использовать метод DriverManager.getConnection(). Этот метод требует указания URL базы данных, имени пользователя и пароля.
+```java
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
-[К оглавлению](#SQL)
+public class JdbcExample {
+    public static void main(String[] args) {
+        // URL подключения к базе данных
+        String url = "jdbc:mysql://localhost:3306/mydatabase";  // для MySQL
+        String username = "myuser";  // имя пользователя базы данных
+        String password = "mypassword";  // пароль пользователя
+
+        try {
+            // Получаем соединение с базой данных
+            Connection conn = DriverManager.getConnection(url, username, password);
+
+            // Использование соединения (например, выполнение запросов)
+            System.out.println("Соединение успешно установлено!");
+
+            // Не забывайте закрывать соединение после работы с ним
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();  // Обработка ошибок, если соединение не удалось
+        }
+    }
+}
+```
+2. Пояснение по параметрам для getConnection()
++ URL подключения: Это строка, указывающая, как подключиться к базе данных. Она состоит из:
+- - Протокола JDBC (например, jdbc:mysql:// для MySQL).
+- - Хоста базы данных (например, localhost).
+- - Порта, на котором работает база данных (например, 3306 для MySQL).
+- - Имя базы данных (например, mydatabase).
++ Имя пользователя и пароль: Это учетные данные для аутентификации в базе данных.
+3. Подключение с использованием пула соединений. Для улучшения производительности, особенно в многопоточных приложениях, рекомендуется использовать пул соединений. Пул соединений позволяет повторно использовать уже открытые соединения, избегая затрат на создание нового соединения для каждого запроса. Это достигается с помощью различных библиотек и фреймворков, например:
++ HikariCP (быстрый и легковесный пул соединений).
++ Apache Commons DBCP.
++ C3P0.
+4. Использование DataSource (альтернатива DriverManager). DataSource — это интерфейс, предоставляющий более высокоуровневый способ работы с соединениями. В отличие от DriverManager, который работает с соединениями напрямую, DataSource может быть использован для управления пулом соединений и упрощения получения соединений.
+```java
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+import org.apache.commons.dbcp2.BasicDataSource;
+
+public class DataSourceExample {
+    public static void main(String[] args) {
+        // Создание DataSource с использованием DBCP2
+        BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setUrl("jdbc:mysql://localhost:3306/mydatabase");
+        dataSource.setUsername("myuser");
+        dataSource.setPassword("mypassword");
+
+        try {
+            // Получаем соединение из DataSource
+            Connection conn = dataSource.getConnection();
+            System.out.println("Соединение успешно установлено!");
+
+            // Закрываем соединение
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+#### Заключение
+Для получения Connection в Java вам необходимо:
++ Указать правильный URL подключения.
++ Предоставить учетные данные (пользователь и пароль).
++ Использовать DriverManager.getConnection() для обычного подключения или DataSource для более сложных случаев (например, с использованием пула соединений).
+
+7. [К оглавлению](#SQL)
 
 # 25. Что такое Statement, PreparedStatement? В чем разница между ними?
+Java, для работы с базой данных через JDBC, для выполнения SQL-запросов используются объекты Statement и PreparedStatement. Оба класса являются частью API JDBC и используются для выполнения SQL-запросов
+1. Statement — это интерфейс, который используется для выполнения простых SQL-запросов без параметров. Обычно его используют для запросов, которые не требуют параметризации, например, для простого SELECT, INSERT, UPDATE и т.д.
+```java
+Statement stmt = conn.createStatement();
+ResultSet rs = stmt.executeQuery("SELECT * FROM users");
+```
+2. PreparedStatement — это расширение интерфейса Statement, которое позволяет заранее компилировать SQL-запросы с использованием параметров. Вместо того, чтобы каждый раз передавать строку запроса (что может быть небезопасно и неэффективно), вы используете плейсхолдеры (?) для параметров, и затем заполняете их значениями перед выполнением запроса. Это улучшает производительность и безопасность (защищает от SQL-инъекций). SQL-инъекция (SQLi) - это уязвимость веб-безопасности, которая позволяет злоумышленнику вмешиваться в запросы, которые приложение делает к своей базе данных. Как правило, это позволяет просматривать данные, которые он обычно не может получить. Это могут быть других пользователей, или любые другие данные, доступ к которым имеет само приложение. Во многих случаях злоумышленник может изменять или удалять эти данные, вызывая постоянные изменения в содержимом или поведении приложения.
+```java
+String sql = "SELECT * FROM users WHERE id = ?";
+PreparedStatement pstmt = conn.prepareStatement(sql);
+pstmt.setInt(1, 1); // Устанавливаем значение для параметра
+ResultSet rs = pstmt.executeQuery();
+```
+#### Преимущества PreparedStatement:
++ Безопасность: Защищает от SQL-инъекций, так как параметры передаются отдельно от самого запроса.
++ Производительность: При многократном выполнении одного и того же запроса с разными параметрами, PreparedStatement компилируется только один раз, а затем используется повторно, что ускоряет выполнение.
++ Читаемость кода: Параметризованные запросы могут сделать код более читаемым, так как не нужно вручную строить SQL-строку с параметрами.
+#### Заключение:
++ Используйте Statement, если вам нужно выполнить простой запрос без параметров.
++ Используйте PreparedStatement, если вам нужно работать с параметризованными запросами или хотите защититься от SQL-инъекций и улучшить производительность при многократном выполнении одинаковых запросов.
+
+  | Характеристика           | Statement                                                                                         | PreparedStatement                                                                                                                   |
+  |--------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+  | Производительность       | Менее производительный для повторных запросов, так как каждый запрос нужно компилировать заново.  | Более производительный, так как SQL-запрос компилируется один раз, а затем используется многократно.                                |
+  | Безопасность	          | Подвержен SQL-инъекциям, так как значения подставляются непосредственно в строку запроса.         | Защищает от SQL-инъекций, так как параметры передаются через метод setXXX(), а не вставляются в строку                              |
+  | Использование параметров | Не поддерживает параметры (все значения в запросе должны быть жестко закодированы).               | Поддерживает параметры, которые задаются через методы типа setInt(), setString(), и т.д.                                            |
+  | Использование            | Хорошо подходит для одноразовых или простых запросов.                                             | Подходит для многократного выполнения запросов с изменяющимися параметрами (например, циклическое выполнение с разными значениями). |
+
+
 
 [К оглавлению](#SQL)
 
 # 26. Что такое ResultSet?
+ResultSet — это интерфейс в Java, который используется для хранения и обработки результатов, полученных в результате выполнения SQL-запроса через JDBC. Когда вы выполняете SQL-запрос с использованием объектов Statement или PreparedStatement, результат этого запроса возвращается в виде объекта ResultSet. Этот объект представляет собой таблицу данных (состоящую из строк и столбцов), которую можно перебрать и обработать.
+#### Основные характеристики ResultSet:
++ Табличное представление данных: ResultSet похож на таблицу, где строки соответствуют строкам в базе данных, а столбцы — столбцам. Можно получить данные из каждой строки и каждого столбца.
++ Навигация по данным: ResultSet позволяет перемещаться по строкам данных, извлекать значения из столбцов и получать доступ к результатам запроса.
+#### Как получить ResultSet?
+Для получения ResultSet выполняется SQL-запрос с помощью Statement или PreparedStatement:
+```java
+Statement stmt = conn.createStatement();
+ResultSet rs = stmt.executeQuery("SELECT * FROM users");
+```
+#### Методы работы с ResultSet:
+1. Навигация по строкам:
++ boolean next() — перемещается к следующей строке в результате. Возвращает false, если больше строк нет.
++ boolean previous() — перемещается к предыдущей строке (если ResultSet поддерживает это).
++ boolean first() — перемещается к первой строке. 
++ boolean last() — перемещается к последней строке.  
++ void beforeFirst() — устанавливает курсор перед первой строкой. 
++ void afterLast() — устанавливает курсор после последней строки. 
++ boolean absolute(int row) — перемещается к указанной строке.
+2. Извлечение данных из текущей строки:
++ int getInt(int columnIndex) — получить значение столбца в виде int по индексу.  
++ String getString(String columnName) — получить значение столбца в виде строки по имени столбца. 
++ double getDouble(int columnIndex) — получить значение столбца в виде double. 
++ boolean getBoolean(String columnName) — получить булевое значение из указанного столбца.
+3. Типы данных и методы извлечения: В ResultSet есть методы для получения данных различных типов:
++ getInt(), getLong(), getFloat(), getDouble()
++ getString()
++ getDate()
++ getTime()
++ getTimestamp()
+```java
+Statement stmt = conn.createStatement();
+ResultSet rs = stmt.executeQuery("SELECT id, name, age FROM users");
+
+while (rs.next()) {
+int id = rs.getInt("id");         // Получаем значение столбца "id"
+String name = rs.getString("name"); // Получаем значение столбца "name"
+int age = rs.getInt("age");         // Получаем значение столбца "age"
+
+    System.out.println("ID: " + id + ", Name: " + name + ", Age: " + age);
+}
+
+// Закрываем ResultSet и Statement после использования
+rs.close();
+stmt.close();
+```
+#### Типы ResultSet:
+1. Типы по возможностям навигации:
++ ResultSet.TYPE_FORWARD_ONLY — позволяет перемещаться только вперед по строкам. 
++ ResultSet.TYPE_SCROLL_INSENSITIVE — позволяет перемещаться вперед и назад. Однако изменения в базе данных после получения результата не будут видны. 
++ ResultSet.TYPE_SCROLL_SENSITIVE — позволяет перемещаться вперед и назад, при этом изменения в базе данных будут видны в ResultSet.
+2. Типы по возможностям изменения:
++ ResultSet.CONCUR_READ_ONLY — данные доступны только для чтения. 
++ ResultSet.CONCUR_UPDATABLE — данные можно обновлять.
+```java
+Пример создания скроллируемого и обновляемого ResultSet:
+
+Statement stmt = conn.createStatement(
+ResultSet.TYPE_SCROLL_INSENSITIVE,
+ResultSet.CONCUR_UPDATABLE
+);
+ResultSet rs = stmt.executeQuery("SELECT * FROM users");
+```
+#### Методы обновления данных:
+Если ResultSet имеет тип CONCUR_UPDATABLE, можно изменять данные прямо в результате:
++ updateString(String columnLabel, String value) — обновить значение в текущей строке.
++ updateRow() — применить изменения к текущей строке.
++ deleteRow() — удалить текущую строку.
++ insertRow() — добавить новую строку.
 
 [К оглавлению](#SQL)
 
 # 27. В чем разница между методами execute, executeUpdate, executeQuery?
+В JDBC интерфейсе для выполнения SQL-запросов используются три основных метода: execute, executeUpdate, и executeQuery. Эти методы принадлежат интерфейсу Statement (и его расширениям, таким как PreparedStatement), и каждый из них служит для выполнения различных типов SQL-запросов.
+1. Метод executeQuery используется исключительно для выполнения SELECT-запросов, то есть запросов, которые возвращают данные из базы данных. Он возвращает объект ResultSet, представляющий результат запроса в виде таблицы данных.
+```java
+String sql = "SELECT * FROM users WHERE age > 18";
+Statement stmt = conn.createStatement();
+ResultSet rs = stmt.executeQuery(sql);
+
+while (rs.next()) {
+    System.out.println("User ID: " + rs.getInt("id"));
+}
+```
+#### Особенности:
++ Используется только для запросов на получение данных (SELECT).
++ Возвращает объект ResultSet, содержащий строки результата.
++ Если использовать executeQuery для запросов, которые не возвращают данные (например, INSERT, UPDATE), это вызовет исключение.
+2. Метод executeUpdate используется для выполнения DML-запросов (Data Manipulation Language), таких как INSERT, UPDATE, и DELETE, а также DDL-запросов (Data Definition Language), таких как CREATE, ALTER, и DROP. Он возвращает целое число, которое показывает количество строк, затронутых запросом.
+```java
+String sql = "UPDATE users SET age = age + 1 WHERE id = 10";
+Statement stmt = conn.createStatement();
+int rowsAffected = stmt.executeUpdate(sql);
+
+System.out.println("Rows affected: " + rowsAffected);
+```
+#### Особенности:
++ Используется для модификации данных в базе (INSERT, UPDATE, DELETE).
++ Возвращает количество строк, затронутых запросом.
++ Если выполнить UPDATE, который не затронет ни одной строки, метод вернет 0.
+3. Метод execute является универсальным методом, который можно использовать для выполнения любого SQL-запроса. Он возвращает значение типа boolean, которое указывает, был ли результатом запроса объект ResultSet (например, при SELECT-запросе).
+```java
+String sql = "CREATE TABLE new_users (id INT PRIMARY KEY, name VARCHAR(50))";
+Statement stmt = conn.createStatement();
+boolean hasResultSet = stmt.execute(sql);
+
+if (hasResultSet) {
+    ResultSet rs = stmt.getResultSet();
+    // Обработка ResultSet
+} else {
+    int updateCount = stmt.getUpdateCount();
+    System.out.println("Update count: " + updateCount);
+}
+```
+#### Особенности:
++ Возвращает true, если запрос вернул объект ResultSet (например, SELECT), и false в противном случае (например, при INSERT, UPDATE, DELETE).
++ Если false, то можно использовать метод getUpdateCount(), чтобы узнать количество затронутых строк.
++ Если true, то можно использовать метод getResultSet() для получения объекта ResultSet.
+#### Когда использовать какой метод:
++ executeQuery — когда ожидается результат в виде таблицы (например, при SELECT-запросах).
++ executeUpdate — когда нужно изменить данные (например, вставка, обновление или удаление строк) или изменить структуру таблицы.
++ execute — когда тип запроса заранее не известен или требуется универсальное решение (например, когда SQL-запрос динамически создается).
+
+  | Метод         | Используется для                            | Возвращаемое значение                          | Примеры запросов                        |
+  |---------------|---------------------------------------------|------------------------------------------------|-----------------------------------------|
+  | executeQuery  | SELECT-запросы                              | ResultSet (результаты выборки)                 | SELECT * FROM users                     |
+  | executeUpdate | INSERT, UPDATE, DELETE, CREATE, ALTER, DROP | int (количество затронутых строк)              | INSERT INTO users ..., UPDATE users ... |
+  | execute       | Любые SQL-запросы                           | boolean (true для SELECT, false для остальных) | SELECT ..., INSERT ..., CREATE ...      |
+
 
 [К оглавлению](#SQL)
 
 # 28. Можно ли использовать возвращаемое значение метода execute для проверки, что что-то обновилось?
+Да, можно использовать возвращаемое значение метода execute для проверки, что в базе данных что-то обновилось, но это требует немного больше шагов по сравнению с использованием более специфичных методов, таких как executeUpdate
+#### Как работает метод execute
+Метод execute возвращает значение типа boolean:
++ true, если запрос вернул ResultSet (например, при выполнении SELECT).
++ false, если запрос не вернул ResultSet (например, при выполнении INSERT, UPDATE, или DELETE). Если execute возвращает false, это означает, что запрос был DML-запросом (Data Manipulation Language), и можно использовать метод getUpdateCount(), чтобы проверить количество затронутых строк.
+
+#### Как проверить, что что-то обновилось:
++ Выполнить запрос с помощью метода execute.
++ Проверить значение getUpdateCount() — этот метод вернет количество строк, затронутых последним DML-запросом. Если getUpdateCount() возвращает значение больше нуля, это означает, что изменения были произведены.
+Если getUpdateCount() возвращает 0, это означает, что ни одна строка не была затронута.
+```java
+String sql = "UPDATE users SET age = age + 1 WHERE id = 10";
+Statement stmt = conn.createStatement();
+boolean hasResultSet = stmt.execute(sql);
+
+if (!hasResultSet) {
+    int rowsAffected = stmt.getUpdateCount();
+    if (rowsAffected > 0) {
+        System.out.println("Rows updated: " + rowsAffected);
+    } else {
+        System.out.println("No rows were updated.");
+    }
+} else {
+    System.out.println("The query returned a ResultSet.");
+}
+```
+#### Когда использовать:
++ Метод execute полезен, если вы хотите использовать универсальный подход к выполнению запросов и не знаете заранее, какой тип запроса будете выполнять.
++ Однако, если вы точно знаете, что будете выполнять DML-запрос (например, INSERT, UPDATE, DELETE), предпочтительнее использовать executeUpdate, так как он сразу возвращает количество затронутых строк без необходимости дополнительной проверки через getUpdateCount().
 
 [К оглавлению](#SQL)
 
 # 29. Как получить при вставке сгенерированные ключи? Как это сделать на чистом sql?
-
+На чистом SQL для получения сгенерированных ключей можно использовать такие конструкции, как RETURNING, LAST_INSERT_ID(), или OUTPUT в зависимости от СУБД. В JDBC используется флаг RETURN_GENERATED_KEYS и метод getGeneratedKeys(). Этот подход делает работу с автоматическими ключами в Java более удобной и стандартизированной, независимо от используемой базы данных.
+1.  На чистом SQL. В SQL есть ключевое слово RETURNING(поля), которое мы можем использовать в запросе. В итоге запрос вставки будет выглядеть так:
+```java
+INSERT INTO cities(name, population) VALUES ('Ufa', 1000000) RETURNING (id);
+```
+2. С использованием JDBC. Для того чтобы получить id. Нужно при создании PreparedStatement вторым аргументом передать Statement.RETURN_GENERATED_KEYS. После как обычно выполнить запрос. Наконец, чтобы получить ключ нужно вызвать метод getGeneratedKeys(). 
+```java
+public City insert(City city) {
+    try (PreparedStatement statement =
+                 connection.prepareStatement("INSERT INTO cities(name, population) VALUES (?, ?)",
+                         Statement.RETURN_GENERATED_KEYS)) {
+        statement.setString(1, city.getName());
+        statement.setInt(2, city.getPopulation());
+        statement.execute();
+        try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+            if (generatedKeys.next()) {
+                city.setId(generatedKeys.getInt(1));
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return city;
+}
+```
 [К оглавлению](#SQL)
 
 # 30. Для чего используется конструкция try-with-resources?
+Конструкция try-with-resources в Java используется для автоматического управления ресурсами, такими как Statement, PreparedStatement, Connection, и другие классы, реализующие интерфейс AutoCloseable. Эта конструкция позволяет автоматически закрывать ресурсы, когда они больше не нужны, даже в случае возникновения исключений, что предотвращает утечки ресурсов и освобождает разработчика от необходимости вручную закрывать ресурсы в блоке finally.
+#### Что делает try-with-resources?
+Когда вы используете try-with-resources, Java автоматически вызывает метод close() на всех ресурсах, которые были открыты в try-блоке. Это происходит независимо от того, было ли выброшено исключение в блоке try или нет. Это особенно важно для таких ресурсов, как подключения к базе данных и потоки ввода/вывода, которые необходимо закрывать, чтобы избежать утечек памяти или блокировок.
+```java
+String sql = "SELECT * FROM users";
+try (Connection conn = DriverManager.getConnection(url, username, password);
+     Statement stmt = conn.createStatement();
+     ResultSet rs = stmt.executeQuery(sql)) {
+    
+    // Работаем с данными результата
+    while (rs.next()) {
+        System.out.println("User ID: " + rs.getInt("id"));
+        System.out.println("User Name: " + rs.getString("name"));
+    }
+    
+} catch (SQLException e) {
+    e.printStackTrace();
+}
+
+Connection, Statement и ResultSet объявляются в круглых скобках 
+после ключевого слова try.
+Все три ресурса автоматически закрываются в конце блока try,
+даже если возникает исключение.
+Нет необходимости вручную писать close() для каждого 
+ресурса в блоке finally, что делает код чище и проще.
+```
+```java
+String sql = "INSERT INTO users (name, email) VALUES (?, ?)";
+try (Connection conn = DriverManager.getConnection(url, username, password);
+     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    
+    pstmt.setString(1, "John Doe");
+    pstmt.setString(2, "john.doe@example.com");
+    pstmt.executeUpdate();
+    
+} catch (SQLException e) {
+    e.printStackTrace();
+}
+```
+#### Почему это важно?
++ Упрощает код: Нет необходимости явно закрывать ресурсы. Это уменьшает количество кода и снижает риск ошибок.
++ Предотвращает утечки ресурсов: Если ресурс не будет закрыт, это может привести к утечке памяти, проблемам с подключением к базе данных и другим неожиданным сбоям.
++ Безопасность при исключениях: Даже если в блоке try произойдет ошибка, ресурсы все равно будут закрыты, так как вызов close() гарантирован в конце блока.
+#### Как это работает?
+Все ресурсы, используемые в try-with-resources, должны реализовывать интерфейс AutoCloseable, который содержит метод close(). В случае с JDBC, такие классы, как Connection, Statement, PreparedStatement, и ResultSet уже реализуют этот интерфейс, поэтому их можно безопасно использовать в конструкции try-with-resources.
 
 [К оглавлению](#SQL)
 
