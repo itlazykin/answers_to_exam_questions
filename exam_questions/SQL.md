@@ -426,11 +426,56 @@ ROLLBACK;
 Если есть составной ключ, неключевые атрибуты должны зависеть от всех частей ключа. 
 
 Пример: Если у нас есть таблица orders, в которой составной первичный ключ состоит из order_id и product_id, но поле product_name зависит только от product_id, нужно вынести информацию о продуктах в отдельную таблицу.
+```java
+-- Таблица клиентов
+        
+CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    customer_name TEXT,
+    customer_phone TEXT
+);
+
+-- Таблица продуктов
+        
+CREATE TABLE products (
+    product_id SERIAL PRIMARY KEY,
+    product_name TEXT,
+    product_price NUMERIC
+);
+
+-- Таблица заказов
+        
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customers(customer_id),
+    product_id INT REFERENCES products(product_id),
+    quantity INT
+);
+
+```
 + Третья нормальная форма (3NF) Таблица должна быть в 2NF, и все неключевые поля должны зависеть только от первичного ключа и не иметь транзитивных зависимостей.
 
 Требования: Устранить транзитивные зависимости (когда одно поле зависит от другого неключевого поля, которое, в свою очередь, зависит от первичного ключа).
 
-Пример: Если в таблице employees есть поле department_location, и оно зависит от department, а не от employee_id, то данные о департаментах лучше вынести в отдельную таблицу.
+Пример: Допустим, мы добавим колонку customer_city в таблицу customers. Если город клиентов зависит от номера телефона, но не от первичного ключа (customer_id), это нарушает 3NF.
+```java
+Выделяем зависимость customer_phone → customer_city в отдельную таблицу.
+
+        -- Таблица городов клиентов
+CREATE TABLE customer_cities (
+        phone TEXT PRIMARY KEY,
+        city TEXT
+);
+
+-- Обновляем таблицу customers
+CREATE TABLE customers (
+        customer_id SERIAL PRIMARY KEY,
+        customer_name TEXT,
+        customer_phone TEXT REFERENCES customer_cities(phone)
+);
+
+если телефон изменится, город автоматически обновится через связь.
+```
 
 [К оглавлению](#SQL)
 
@@ -460,7 +505,56 @@ ROLLBACK;
 + Аналитические базы данных — данные часто денормализуются для отчетов и аналитики, чтобы быстро создавать сводки и отчеты.
 + Кэширование данных — если данные редко меняются, их можно сохранить в денормализованной форме в кэше для ускорения доступа.
 + Системы рекомендаций — в системах, где требуется быстрое агрегирование информации, данные могут быть денормализованы для упрощения получения рекомендаций.
+```java
+Клиенты:
+CREATE TABLE customers (
+customer_id SERIAL PRIMARY KEY,
+customer_name TEXT,
+customer_phone TEXT
+);
 
+Продукты:
+CREATE TABLE products (
+product_id SERIAL PRIMARY KEY,
+product_name TEXT,
+product_price NUMERIC
+);
+
+Заказы:
+CREATE TABLE orders (
+order_id SERIAL PRIMARY KEY,
+customer_id INT REFERENCES customers(customer_id),
+product_id INT REFERENCES products(product_id),
+quantity INT,
+order_date DATE
+);
+
+Денормализированная база:
+CREATE TABLE denormalized_orders (
+        order_id SERIAL PRIMARY KEY,
+        customer_name TEXT,
+        customer_phone TEXT,
+        product_name TEXT,
+        product_price NUMERIC,
+        quantity INT,
+        total_price NUMERIC,
+        order_date DATE
+);
+
+Пимер запроса:
+
+С денормализованной таблицей:
+SELECT customer_name, customer_phone, product_name, total_price, order_date
+FROM denormalized_orders
+WHERE order_date = '2024-11-27';
+
+нормализованных таблиц:
+SELECT c.customer_name, c.customer_phone, p.product_name, (p.product_price * o.quantity) AS total_price, o.order_date
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+JOIN products p ON o.product_id = p.product_id
+WHERE o.order_date = '2024-11-27';
+```
 [К оглавлению](#SQL)
 
 # 9. Что такое кластерный и некластерный индексы?
@@ -475,7 +569,24 @@ ROLLBACK;
 + Недостатки: Вставка новых данных может быть медленной, так как они должны вставляться в определенное место, чтобы поддерживать порядок.
 Изменение значения кластерного ключа может привести к перемещению данных на диске.
 + Применение: Обычно используется для столбцов, которые часто используются для фильтрации или сортировки данных, например, первичный ключ (PRIMARY KEY), идентификаторы и даты.
-
+```java
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    employee_name TEXT,
+    department_id INT
+);
+INSERT INTO employees (employee_name, department_id)
+VALUES
+        ('Иван Иванов', 2),
+        ('Мария Смирнова', 1),
+        ('Петр Петров', 3),
+        ('Анна Васильева', 2),
+        ('Сергей Козлов', 1);
+Создаем индекс:
+CREATE INDEX idx_department_id ON employees(department_id);
+Делаем таблицу кластерной:
+CLUSTER employees USING idx_department_id;
+```
 2. Некластерный индекс (Non-Clustered Index) создается отдельно от основного порядка хранения данных. Он содержит указатели на физическое расположение строк в таблице. Таблица может иметь несколько некластерных индексов.
 + Как работает: Некластерный индекс создаёт отдельную структуру, которая хранит значения индекса и ссылки на физическое расположение соответствующих строк в таблице. Данные в таблице не сортируются физически по этому индексу.
 
@@ -488,6 +599,30 @@ ROLLBACK;
 #### Когда использовать кластерный и некластерный индексы?
 + Кластерный индекс подходит, если нужно часто фильтровать или сортировать данные по ключу. Например, по дате или идентификатору.
 + Некластерный индекс полезен для оптимизации поиска по столбцам, которые не связаны с сортировкой всей таблицы.
+```java
+CREATE TABLE products (
+    product_id SERIAL PRIMARY KEY,
+    product_name TEXT,
+    product_price NUMERIC
+);
+INSERT INTO products (product_name, product_price)
+VALUES
+        ('Хлеб', 50.00),
+        ('Молоко', 70.00),
+        ('Сыр', 250.00),
+        ('Масло', 120.00),
+        ('Яйца', 85.00);
+Создаем некластерный индекс:
+CREATE INDEX idx_product_price ON products(product_price);
+
+Этот индекс ускоряет поиск по цене (product_price). 
+Однако физический порядок строк в таблице не меняется.
+
+        SELECT product_name, product_price
+        FROM products
+        WHERE product_price < 100;
+PostgreSQL будет использовать idx_product_price для быстрого поиска строк с ценой ниже 100.
+```
 #### Основные отличия:
 | Критерий                  | Кластерный индекс                                | Некластерный индекс                           |
 |---------------------------|--------------------------------------------------|-----------------------------------------------|
@@ -565,6 +700,8 @@ INNER JOIN employees e2 ON e1.manager_id = e2.id;
 | FULL JOIN    | Возвращает все строки, если есть совпадения в одной из таблиц                     | Получение всех данных из обеих таблиц                  |
 | CROSS JOIN   | Возвращает декартово произведение двух таблиц                                     | Создание всех комбинаций данных                        |
 | SELF JOIN    | Соединяет таблицу саму с собой                                                    | Сравнение строк в одной таблице                        |
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/joins.png)
 
 [К оглавлению](#SQL)
 
