@@ -122,24 +122,36 @@
 
 1. Объект рождается. Во время исполнения JVM видит, что стоит оператор new. Происходит выделение памяти под объект и
    возврат ссылки, которая будет ссылаться на занятый участок памяти. Все объекты рождаются в eden
-   ![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem1.png)
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem1.png)
+
 2. Этап 1 выполняет до тех пор, пока не будет заполнен eden. Когда eden заполнен происходит minor GC(малая сборка
    мусора) — это процесс в сборке мусора в Java, который запускается, когда область памяти Young Generation (молодое
    поколение) заполняется.
-   ![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem2.png)
-3. Объекты, у которых уже нет ссылки удаляются
-   ![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem3.png)
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem2.png)
+
+3. Объекты, у которых уже нет ссылки удаляются.
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem3.png)
+
 4. Объекты, у которых есть ссылки попадают в survivor space из eden. Причем survivor space делиться на две части. Между
    этими частями происходит перемещения объектов. В один момент времени одна из частей пуста, чтоб мочь вместить объекты
    пришедшие из eden.
-   ![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem4.png)
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem4.png)
+
 5. Объекты, которые уже были в одной части survivor space, перемещаются в другую, при этом растет их «возраст» (age).
    Сам процесс, перемещения объектов из различных частей survivor space и увеличения их возраста называется
    «взрослением» (aging).
-   ![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem5.png)
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem5.png)
+
 6. бъекты, которые достигли определенного возраста попадают в old generation. Этот процесс называется «продвижением»
    promotion.
-   ![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem6.png)
+
+![img](https://github.com/itlazykin/answers_to_exam_questions/blob/main/main/resources/mem6.png)
+
 7. Этапы 1-6 происходят до тех пока не будет заполнен old generation, причем по ходу будут происходить minor GC, для
    очищения young generation.
 8. Когда old generation заполняется производиться major GC
