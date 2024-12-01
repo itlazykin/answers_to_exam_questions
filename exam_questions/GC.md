@@ -357,9 +357,7 @@ jhat heap_dump.hprof
 ```java
 Пример запуска:
 
-jcmd<pid> JFR.
-start duration = 60
-s filename = myrecording.jfr
+jcmd<pid> JFR.start duration = 60s filename = myrecording.jfr
 ```
 
 #### Как анализировать память: пошаговый процесс
@@ -423,9 +421,7 @@ void changeValue(StringBuilder sb) {
 StringBuilder sb = new StringBuilder("Hello");
 
 changeValue(sb);
-System.out.
-
-println(sb); // Вывод: "Hello World!"
+System.out.println(sb); // Вывод: "Hello World!"
 
 ```
 
@@ -486,9 +482,7 @@ digit =null;
 
 ```java
 List<Object> cache = new ArrayList<>();
-cache.
-
-add(new Object()); // Объект не может быть удалён, пока он в списке
+cache.add(new Object()); // Объект не может быть удалён, пока он в списке
 ```
 
 [К оглавлению](#GC)
@@ -603,11 +597,7 @@ JVM проверяет, существует ли строка "Hello" в String
 ```java
 String str3 = new String("Hello");
 
-будет создан
-новый объект
-        в Heap, а
-не в
-пуле .
+будет создан новый объект в Heap, а не в пуле.
 ```
 
 #### Метод intern()
@@ -617,10 +607,7 @@ String str3 = new String("Hello");
 ```java
 String str4 = new String("Hello").intern();
 
-Теперь str4
-будет ссылаться
-на строку
-из String.
+Теперь str4 будет ссылаться на строку из String.
 ```
 
 #### Преимущества String Pool:
@@ -640,7 +627,7 @@ Integer i1 = Integer.valueOf(100);
 Integer i2 = Integer.valueOf(100);
 System.out.
 
-println(i1 ==i2); // true
+println(i1 == i2); // true
 ```
 
 Оба объекта (i1 и i2) будут ссылаться на один и тот же объект из кеша.
@@ -652,7 +639,7 @@ Integer i3 = Integer.valueOf(128);
 Integer i4 = Integer.valueOf(128);
 System.out.
 
-println(i3 ==i4); // false
+println(i3 == i4); // false
 ```
 
 Объекты Integer, созданные через new, всегда уникальны:
@@ -662,7 +649,7 @@ Integer i5 = new Integer(100);
 Integer i6 = new Integer(100);
 System.out.
 
-println(i5 ==i6); // false
+println(i5 == i6); // false
 ```
 
 #### Почему именно -128 до 127?
@@ -834,8 +821,7 @@ intern() помогает убедиться,что все одинаковые 
 + Запустите ваше Java-приложение с параметрами JVM:
 
 ```java
-java -Xmx512m -Xms256m -
-jar myapp.jar
+java -Xmx512m -Xms256m - jar myapp.jar
 ```
 
 + Откройте VisualVM и подключитесь к работающему приложению.
@@ -929,14 +915,8 @@ class MyClass {
     }
 }
 
-Когда объект
-        становится недостижимым, метод
-
-finalize()
-
-может быть
-вызван автоматически
-сборщиком мусора.
+Когда объект становится недостижимым, метод finalize()
+может быть вызван автоматически сборщиком мусора.
 ```
 
 #### Особенности finalize()
@@ -966,14 +946,10 @@ finalize()
 
         try(
 BufferedReader reader = new BufferedReader(new FileReader("file.txt"))){
-        System.out.
-
-println(reader.readLine());
+        System.out.println(reader.readLine());
         }catch(
 IOException e){
-        e.
-
-printStackTrace();
+        e.printStackTrace();
 }
 ```
 
@@ -1206,11 +1182,8 @@ void methodA() {
     methodB();
 }
 
-Когда метод
-        завершает выполнение, стек
-автоматически очищается
-для этого
-вызова .
+Когда метод завершает выполнение, стек автоматически очищается
+для этого вызова.
 ```
 
 `Heap (Куча)`Куча — это область памяти, где хранятся объекты и данные, которые существуют дольше, чем время выполнения
@@ -1343,17 +1316,10 @@ Custom ClassLoader
 ```
 
 ```java
-Пример использования
-Custom ClassLoader
-Пользовательский ClassLoader
-может пригодиться,
-если нужно
-загружать классы
-из нестандартных
-источников,например,
-из сети
-или зашифрованных
-файлов .
+Пример использования Custom ClassLoader
+Пользовательский ClassLoader может пригодиться,  если нужно
+загружать классы из нестандартных источников,например, из сети
+или зашифрованных файлов .
 
 public class CustomClassLoader extends ClassLoader {
     @Override
@@ -1409,7 +1375,6 @@ Bootstrap ClassLoader(ядро JVM)
        ↑
 Extension ClassLoader
        ↑
-
 System(Application) ClassLoader
 
 ```
