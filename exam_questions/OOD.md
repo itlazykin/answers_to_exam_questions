@@ -394,14 +394,10 @@ ReportGenerator generator = new ReportGenerator();
 String report = generator.generateReport();
 
 DatabaseSaver saver = new DatabaseSaver();
-saver.
-
-save(report);
+saver.save(report);
 
 EmailSender sender = new EmailSender();
-sender.
-
-send(report);
+sender.send(report);
 
 ```
 
@@ -462,13 +458,8 @@ public class NotificationService {
 + Любое изменение может сломать существующую логику.
 
 ```java
-Как исправить?
-Используйте полиморфизм
-или паттерн
-Стратегия,
-чтобы избежать
-изменений существующего
-кода .
+Как исправить? Используйте полиморфизм или паттерн Стратегия,
+чтобы избежать изменений существующего кода.
 
 // Шаг 1: Создайте интерфейс
 public interface Notification {
@@ -506,22 +497,11 @@ public class NotificationService {
 // Использование
 Notification email = new EmailNotification();
 NotificationService service = new NotificationService(email);
-service.
+service.sendNotification("Привет!");
 
-sendNotification("Привет!");
-
-Теперь,
-если нужно
-добавить новый
-
-тип уведомлений(например, WhatsApp),
-
-достаточно создать
-новый класс
-WhatsAppNotification,
-не трогая
-уже существующий
-код .
+Теперь, если нужно добавить новый тип уведомлений(например, WhatsApp),
+достаточно создать новый класс WhatsAppNotification, не трогая
+уже существующий код .
 ```
 
 [К оглавлению](#OOD)
@@ -561,13 +541,8 @@ LSP (Liskov Substitution Principle) — принцип подстановки Б
 + Нарушает логическое или ожидаемое поведение.
 
 ```java
-Представим,
-что у
-нас есть
-класс Bird
-и его
-дочерний класс
-Penguin:
+Представим, что у нас есть класс Bird и его
+дочерний класс Penguin:
 
 public class Bird {
     public void fly() {
@@ -613,11 +588,8 @@ public class Penguin extends Bird {
     }
 }
 
-Теперь каждый
-подкласс определяет
-        свое поведение, и
-принцип LSP
-не нарушается.
+Теперь каждый подкласс определяет свое поведение, и
+принцип LSP не нарушается.
 ```
 
 [К оглавлению](#OOD)
@@ -664,14 +636,9 @@ public interface Animal {
     void swim();
 }
 
-Если мы
-создадим класс
-Dog,
-он будет
-вынужден реализовать
-        метод fly, который
-собакам не
-нужен .
+Если мы создадим класс Dog, он будет
+вынужден реализовать метод fly, который
+собакам не нужен .
 
 public class Dog implements Animal {
     @Override
@@ -716,12 +683,8 @@ public interface Swimmable {
 ```
 
 ```java
-Теперь каждый
-класс реализует
-только те
-интерфейсы,
-которые ему
-подходят:
+Теперь каждый класс реализует только те
+интерфейсы, которые ему подходят:
 
 public class Dog implements Eatable, Swimmable {
     @Override
@@ -747,11 +710,8 @@ public class Bird implements Eatable, Flyable {
     }
 }
 
-Интерфейсы используются
-        по назначению, и
-классы больше
-не перегружены
-ненужными методами.
+Интерфейсы используются по назначению, и классы больше
+не перегружены ненужными методами.
 ```
 
 [К оглавлению](#OOD)
@@ -795,10 +755,7 @@ DIP (Dependency Inversion Principle) — это принцип инверсии 
 + Логика становится жёстко привязанной к конкретным реализациям, что затрудняет её изменение или расширение.
 
 ```java
-Представьте,
-что у
-нас есть
-приложение для
+Представьте, что у нас есть приложение для
 отправки уведомлений:
 
 public class EmailNotification {
@@ -828,9 +785,7 @@ public class NotificationService {
 #### Исправление
 
 ```java
-Используйте абстракции
-для инверсии
-зависимости:
+Используйте абстракции для инверсии зависимости:
 
 public interface Notification {
     void send(String message);
@@ -862,25 +817,16 @@ public class NotificationService {
     }
 }
 
-Теперь,
-чтобы использовать
-новый тип
-уведомлений,
-достаточно передать
-соответствующую реализацию
-интерфейса:
+Теперь, чтобы использовать новый тип уведомлений,
+достаточно передать соответствующую реализацию интерфейса:
 
 Notification email = new EmailNotification();
 NotificationService service = new NotificationService(email);
-service.
-
-notify("Привет!");
+service.notify("Привет!");
 
 Notification sms = new SmsNotification();
 NotificationService smsService = new NotificationService(sms);
-smsService.
-
-notify("Привет!");
+smsService.notify("Привет!");
 ```
 
 #### Преимущества:
@@ -1017,11 +963,9 @@ public class Calculator {
     }
 }
 
-Тестируем этот
-метод с
-помощью JUnit:
+Тестируем этот метод с помощью JUnit:
 
-        import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CalculatorTest {
