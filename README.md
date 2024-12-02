@@ -13,7 +13,7 @@
 + [OOD](exam_questions/OOD.md#OOD)
 + [AlgorithmsInInterviews](exam_questions/AlgorithmsInInterviews.md#AlgorithmsInInterviews)
 #### Мидл.
-Объединение зафиксированных изменений
+
 
 
 
