@@ -14,6 +14,7 @@
 + [AlgorithmsInInterviews](exam_questions/AlgorithmsInInterviews.md#AlgorithmsInInterviews)
 #### Мидл.
 + [Git](exam_questions/Git.md#Git)
++ [Multithreading](exam_questions/Multithreading.md#Multithreading)
 
 
 
