@@ -13,7 +13,7 @@
 + [OOD](exam_questions/OOD.md#OOD)
 + [AlgorithmsInInterviews](exam_questions/AlgorithmsInInterviews.md#AlgorithmsInInterviews)
 #### Мидл.
-+ [Git](exam_questions/Git#Git)
++ [Git](exam_questions/Git.md#Git)
 
 
 
