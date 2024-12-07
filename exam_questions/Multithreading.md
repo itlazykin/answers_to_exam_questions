@@ -319,21 +319,544 @@ public class Main {
 
 # 4. Объясните следующие термины: монитор, мьютекс, критическая секция.
 
+Эти термины связаны с синхронизацией потоков и управлением доступом к общим ресурсам, чтобы избежать проблем, таких как
+состояние гонки. Давай разберем каждый термин.
+
+1. Монитор (Monitor)
+
+Монитор — это абстракция для управления доступом к общим ресурсам. В Java монитор ассоциирован с каждым объектом, и он
+используется для обеспечения мутуальной исключительности и координации потоков.
+
+Как работает:
+Каждый объект в Java имеет встроенный монитор, который захватывается с помощью ключевого слова synchronized.
+Если поток "захватил" монитор объекта, другие потоки, пытающиеся войти в синхронизированный блок/метод, должны ждать,
+пока монитор освободится.
+```java
+synchronized (lock) {
+// Захват монитора объекта lock
+System.out.println("Монитор активен!");
+// Освобождение монитора после выхода из блока
+}
+```
+#### Зачем нужен монитор:
++ Для управления доступом к критическим секциям (о них чуть ниже). 
++ Для координации потоков с помощью методов wait, notify, notifyAll.
+
+2. Мьютекс (Mutex)
+
+Мьютекс (сокращение от "mutual exclusion" — взаимное исключение) — это низкоуровневый механизм, который гарантирует, что
+к критической секции или ресурсу одновременно имеет доступ только один поток.
+
+Как работает:
+Поток захватывает мьютекс, чтобы получить доступ к ресурсу.
+Если мьютекс уже захвачен другим потоком, остальные потоки блокируются до тех пор, пока мьютекс не освободится.
+
+В Java:
+synchronized выполняет роль мьютекса.
+Также можно использовать класс ReentrantLock из пакета java.util.concurrent.locks.
+```java
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class MutexExample {
+private final Lock lock = new ReentrantLock();
+
+    public void criticalSection() {
+        lock.lock(); // Захват мьютекса
+        try {
+            System.out.println("Доступ к ресурсу получен!");
+        } finally {
+            lock.unlock(); // Освобождение мьютекса
+        }
+    }
+}
+```
+3. Критическая секция (Critical Section)
+
+Критическая секция — это участок кода, который должен быть выполнен атомарно, то есть без вмешательства других потоков.
+Обычно это код, который обращается к общим ресурсам, например, переменным или файлам.
+
+Зачем нужна:
+Чтобы предотвратить состояние гонки, когда несколько потоков одновременно читают и изменяют общий ресурс.
+
+Как защищается:
+Используя мьютекс или монитор.
+
+
+```java
+public class Counter {
+private int count = 0;
+
+    public synchronized void increment() { // Критическая секция
+        count++;
+    }
+
+    public synchronized int getCount() { // Критическая секция
+        return count;
+    }
+}
+
+synchronized гарантирует, что к переменной count одновременно обращается только один поток.
+```
+
+| Метод              | Что это?	                                    | Как реализуется в Java?     | Пример использования           |
+|--------------------|----------------------------------------------|-----------------------------|--------------------------------|
+| Монитор            | Механизм синхронизации, связанный с объектом | synchronized, wait/notify   | Управление доступом к объекту  |
+| Мьютекс            | простейший тип синхронизатора нитей          | synchronized, ReentrantLock | Блокировка ресурсов            |
+| Критическая секция | Участок кода, выполняемый атомарно           | synchronized                | Обеспечение целостности данных |
+
+Если представить это метафорой:
+
++ Критическая секция — это сейф, куда кладут ценные вещи.
++ Мьютекс — это ключ от сейфа, который есть только у одного человека в каждый момент времени.
++ Монитор — это охранник, который следит за тем, чтобы ключ использовался правильно.
+
 [К оглавлению](#Multithreading)
 
 # 5. Как работает join()?
+
+Метод join() в Java используется для синхронизации потоков. Он позволяет одному потоку дождаться завершения другого
+потока - перед тем, как продолжить выполнение.
+
+#### Как работает join()?
+
++ Когда один поток вызывает метод join() на другом потоке, текущий поток блокируется и переходит в состояние WAITING,
+  пока вызываемый поток не завершится.
++ После завершения вызываемого потока текущий поток продолжает выполнение.
+
+#### Ключевые моменты:
+
++ Поток вызывает join() на другом потоке:
+Например, поток main вызывает join() на потоке t. Тогда main будет ждать, пока поток t завершится.
+
++ Может выбросить InterruptedException:
+Если поток, вызвавший join(), будет прерван, выбрасывается исключение.
+
++ Можно указать тайм-аут:
+Метод join() имеет перегруженные версии с параметрами времени, позволяя ждать завершения потока только в течение
+заданного интервала.
+
+```java
+public class JoinExample {
+    public static void main(String[] args) {
+        Thread thread1 = new Thread(() -> {
+            System.out.println("Thread 1 starts working.");
+            try {
+                Thread.sleep(2000); // Симуляция работы
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Thread 1 finishes working.");
+        });
+
+        thread1.start();
+
+        try {
+            System.out.println("Main thread is waiting for Thread 1.");
+            thread1.join(); // Ожидание завершения потока thread1
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Main thread continues.");
+    }
+}
+
+Вывод программы:
+Thread 1 starts working.
+Main thread is waiting for Thread 1.
+Thread 1 finishes working.
+Main thread continues.
+        
+Основной поток (main) приостанавливается после строки 
+Main thread is waiting for Thread 1. и продолжает 
+выполнение только после завершения потока thread1.
+```
+
+```java
+Пример с тайм-аутом:
+
+public class JoinWithTimeout {
+    public static void main(String[] args) {
+        Thread thread2 = new Thread(() -> {
+            try {
+                Thread.sleep(5000); // Поток "работает" 5 секунд
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Thread 2 finishes working.");
+        });
+
+        thread2.start();
+
+        try {
+            System.out.println("Main thread is waiting for Thread 2 (with timeout).");
+            thread2.join(2000); // Ждем поток thread2 максимум 2 секунды
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Main thread continues.");
+    }
+}
+
+Вывод программы:
+Main thread is waiting for Thread 2 (with timeout).
+Main thread continues.
+Thread 2 finishes working.
+
+основной поток ждет thread2 только 2 секунды. 
+После этого он продолжает выполнение, 
+даже если thread2 еще не завершился.
+```
+
+#### Когда использовать join()?
+
++ Когда нужно дождаться завершения одного или нескольких потоков перед выполнением следующего кода.
+Пример: завершение загрузки данных из файлов или выполнения задач в фоновых потоках перед обработкой результатов.
 
 [К оглавлению](#Multithreading)
 
 # 6. Что такое DeadLock? Приведите примеры.
 
+Deadlock — это ситуация, когда два или более потоков навсегда блокируются, ожидая друг друга, потому что каждый из них
+удерживает ресурс, который нужен другому.
+
+#### Условия возникновения Deadlock:
++ Взаимное исключение (Mutual Exclusion): Ресурс может быть занят только одним потоком одновременно.
++ Удержание и ожидание (Hold and Wait): Поток удерживает ресурс и ждет доступ к другому.
++ Нет принудительного освобождения (No Preemption): Ресурс не может быть принудительно изъят у потока.
++ Цикл ожидания (Circular Wait): Есть цепочка потоков, где каждый ждет ресурс, занятый следующим потоком.
+
+```java
+Рассмотрим классический пример: 
+два потока захватывают два ресурса в разном порядке, 
+вызывая взаимную блокировку.
+
+public class DeadlockExample {
+    private static final Object LOCK1 = new Object();
+    private static final Object LOCK2 = new Object();
+
+    public static void main(String[] args) {
+        Thread thread1 = new Thread(() -> {
+            synchronized (LOCK1) {
+                System.out.println("Thread 1: захватил LOCK1");
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("Thread 1: ожидает LOCK2");
+                synchronized (LOCK2) {
+                    System.out.println("Thread 1: захватил LOCK2");
+                }
+            }
+        });
+        Thread thread2 = new Thread(() -> {
+            synchronized (LOCK2) {
+                System.out.println("Thread 2: захватил LOCK2");
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("Thread 2: ожидает LOCK1");
+                synchronized (LOCK1) {
+                    System.out.println("Thread 2: захватил LOCK1");
+                }
+            }
+        });
+        thread1.start();
+        thread2.start();
+    }
+}
+
+Что произойдет:
+Поток 1 захватывает LOCK1 и ждет LOCK2.
+Поток 2 захватывает LOCK2 и ждет LOCK1.
+Возникает Deadlock, так как оба потока ждут друг друга, но никто не освобождает свои ресурсы.
+
+Вывод:
+Thread 1: захватил LOCK1
+Thread 2: захватил LOCK2
+Thread 1: ожидает LOCK2
+Thread 2: ожидает LOCK1
+// Блокировка. Программа "виснет".
+
+```
+#### Как избежать Deadlock?
+
++ Фиксированный порядок захвата ресурсов: Если все потоки захватывают ресурсы в одном и том же порядке, Deadlock не
+  возникнет.
+```java
+synchronized (LOCK1) {
+    synchronized (LOCK2) {
+        // Код
+    }
+}
+```
+
++ Использование tryLock:
+  Класс ReentrantLock из пакета java.util.concurrent.locks предоставляет метод tryLock, который пытается захватить
+  ресурс, но не блокирует поток, если это невозможно.
+
+```java
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class TryLockExample {
+    private static final Lock lock1 = new ReentrantLock();
+    private static final Lock lock2 = new ReentrantLock();
+
+    public static void main(String[] args) {
+        Thread thread1 = new Thread(() -> {
+            if (lock1.tryLock()) {
+                try {
+                    System.out.println("Thread 1: захватил lock1");
+                    if (lock2.tryLock()) {
+                        try {
+                            System.out.println("Thread 1: захватил lock2");
+                        } finally {
+                            lock2.unlock();
+                        }
+                    }
+                } finally {
+                    lock1.unlock();
+                }
+            }
+        });
+        Thread thread2 = new Thread(() -> {
+            if (lock2.tryLock()) {
+                try {
+                    System.out.println("Thread 2: захватил lock2");
+                    if (lock1.tryLock()) {
+                        try {
+                            System.out.println("Thread 2: захватил lock1");
+                        } finally {
+                            lock1.unlock();
+                        }
+                    }
+                } finally {
+                    lock2.unlock();
+                }
+            }
+        });
+        thread1.start();
+        thread2.start();
+    }
+}
+```
++ Использование тайм-аутов:
+При захвате ресурсов можно использовать методы с тайм-аутом, чтобы избежать бесконечного ожидания.
+
+#### Пример взаимоблокировки с потоками в метафоре
+
+Представь двух людей, каждый из которых держит вилку и хочет взять нож у другого, чтобы поесть. Они стоят, не отпуская
+вилок, ожидая, пока другой отдаст нож. Это и есть Deadlock: никто не может продолжить, потому что никто не уступает.
+
+Чтобы избежать этого:
+
++ Пусть каждый человек сначала кладет вилку, а потом берет нож.
++ Или пусть один из них подождет определенное время и попробует снова.
+
 [К оглавлению](#Multithreading)
 
 # 7. Назовите различия между Collections.synchronizedMap(new HashMap()) и ConcurrentHashMap.
 
+Обе эти структуры предназначены для работы с потоками, но их реализация и поведение значительно различаются.
+
+1. Блокировка (Locking)
+
+   `Collections.synchronizedMap(new HashMap())`
+
++ Синхронизация всей карты:
+  + Все методы, работающие с картой, синхронизированы с использованием одного единственного мьютекса. Это значит, что
+    весь объект блокируется, даже если только одна операция выполняется.
+    Например, чтение или запись будет блокировать доступ ко всей карте для других потоков.
+
+`ConcurrentHashMap`
+
++ Разделенная блокировка (Segmented Locking):
+  + Использует более тонкую гранулярность блокировки: блокируются только определённые части карты (ранее — сегменты, в
+    современных версиях — корзины).
+    Это позволяет нескольким потокам одновременно работать с разными частями карты без конфликтов.
+
+2. Производительность
+   `Collections.synchronizedMap(new HashMap())`
+
++ Медленнее в многопоточной среде:
+  + Из-за глобальной блокировки производительность падает при увеличении числа потоков.
+  + Подходит только для случаев, где запись/чтение выполняется редко, а многопоточность минимальна.
+
+`ConcurrentHashMap`
+
++ Быстрее в многопоточной среде:
+  + Благодаря разделению блокировок, больше потоков могут одновременно выполнять операции чтения и записи.
+  + Идеально подходит для высоконагруженных приложений.
+
+3. Поддержка конкурентного доступа
+   `Collections.synchronizedMap(new HashMap())`
+
++ Не поддерживает итерацию без ошибок (fail-safe):
+При модификации карты во время итерации будет выброшено ConcurrentModificationException.
+
+`ConcurrentHashMap`
+
++ Поддерживает конкурентную итерацию:
+  + Использует механизм "ослабленной консистентности" (weakly consistent):
+  + Изменения, сделанные другими потоками, могут быть видны или не видны во время итерации, но исключения не
+    выбрасываются.
+
+4. Наличие null ключей и значений
+   `Collections.synchronizedMap(new HashMap())`
+
++ Разрешает null ключи и значения: Один null ключ и множество null значений допустимы.
+
+`ConcurrentHashMap`
+
++ Не разрешает null:
+  + Ключи и значения не могут быть null.
+    Это сделано, чтобы избежать неоднозначностей в многопоточной среде (например, если get(null) возвращает null,
+    непонятно, отсутствует ли ключ или значение равно null).
+
+5. Пример использования
+
+```java
+Collections.synchronizedMap(new HashMap())
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+public class SynchronizedMapExample {
+  public static void main(String[] args) {
+    Map<String, String> map = Collections.synchronizedMap(new HashMap<>());
+    map.put("1", "one");
+    map.put("2", "two");
+    synchronized (map) {
+      for (Map.Entry<String, String> entry : map.entrySet()) {
+        System.out.println(entry.getKey() + " -> " + entry.getValue());
+      }
+    }
+  }
+}
+Замечание: Для итерации нужно вручную синхронизировать блок, 
+так как внутренняя синхронизация не гарантирует безопасной итерации.
+```
+
+```java
+ConcurrentHashMap
+
+import java.util.concurrent.ConcurrentHashMap;
+
+public class ConcurrentHashMapExample {
+  public static void main(String[] args) {
+    ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
+
+    map.put("1", "one");
+    map.put("2", "two");
+
+    for (Map.Entry<String, String> entry : map.entrySet()) {
+      System.out.println(entry.getKey() + " -> " + entry.getValue());
+    }
+  }
+}
+Замечание: Дополнительной синхронизации для итерации не требуется.
+```
+
+| Критерий            | Collections.synchronizedMap	   | ConcurrentHashMap                      |
+|---------------------|--------------------------------|----------------------------------------|
+| Количество потоков  | Небольшое                      | Высоконагруженные многопоточные задачи |
+| Частота операций    | Низкая (редкие чтения/записи)  | Частое чтение/запись                   |
+| Итерация            | Требуется ручная синхронизация | Безопасна для многопоточной итерации   |
+| null ключи/значения | Поддерживает                   | Не поддерживает                        |
+
 [К оглавлению](#Multithreading)
 
 # 8. Различия в интерфейсах Runnable и Callable.
+
+Оба интерфейса используются для создания задач, которые могут выполняться в потоках, но они имеют разные возможности и
+предназначение.
+
+| Критерий                     | Runnable	                                                  | Callable                                                                                  |
+|------------------------------|------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Пакет                        | Находится в пакете java.lang.                              | Находится в пакете java.util.concurrent.                                                  |
+| Метод                        | Содержит метод: void run().                                | Содержит метод: V call() throws Exception.                                                |
+| Возвращаемое значение        | Ничего не возвращает (тип void).                           | Возвращает значение (тип V).                                                              |
+| Обработка исключений         | Исключения должны обрабатываться внутри метода run.        | Может выбрасывать проверяемые исключения.                                                 |
+| Использование                | Подходит для задач, которым не нужно возвращать результат. | Используется для задач, которые возвращают результат или могут выбросить исключение.      |
+| Интеграция с ExecutorService | Передается в ExecutorService как задача для выполнения.    | Возвращает объект типа Future<V>, который позволяет получить результат выполнения задачи. |
+
+```java
+Пример использования Runnable
+
+public class RunnableExample {
+  public static void main(String[] args) {
+    Runnable task = () -> {
+      System.out.println("Выполняется задача Runnable");
+    };
+    Thread thread = new Thread(task);
+    thread.start();
+  }
+}
+
+Задача выполняется, но не возвращает результат.
+Исключения внутри задачи нужно обрабатывать вручную.
+```
+
+```java
+Пример использования Callable
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class CallableExample {
+  public static void main(String[] args) {
+    Callable<String> task = () -> {
+      return "Результат выполнения Callable";
+    };
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Future<String> future = executor.submit(task);
+
+    try {
+      // Получаем результат выполнения задачи
+      String result = future.get();
+      System.out.println(result);
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      executor.shutdown();
+    }
+  }
+}
+
+Задача возвращает результат выполнения через объект Future.
+Исключения можно обрабатывать через Future.get().
+```
+
+#### Когда использовать?
+
+`Runnable`:
++ Для задач, которые выполняются в потоке, но не возвращают результата.
+Например: запись данных в файл, логирование.
+
+`Callable`:
++ Для задач, которые возвращают результат или могут выбросить исключение.
+Например: выполнение сложных вычислений, запрос данных из базы.
+
+#### Ключевые отличия в метафоре
+
+Представь, что тебе нужно отправить курьера за посылкой:
+
+`Runnable`:
+Курьер просто идёт по твоему поручению, но ничего не возвращает. Если что-то пошло не так, тебе нужно было заранее
+предусмотреть, как это обработать.
+`Callable`:
+Курьер возвращается с посылкой, и ты можешь узнать результат его работы. Если произошла ошибка, он сообщает тебе об этом
+через исключение.
 
 [К оглавлению](#Multithreading)
 
