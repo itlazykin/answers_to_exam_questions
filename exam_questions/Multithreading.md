@@ -862,33 +862,705 @@ public class CallableExample {
 
 # 9. Различия между isInterrupted(), interrupted(), interrupt().
 
+Эти методы относятся к управлению состоянием прерывания потока в Java. Прерывание в Java — это механизм, с помощью
+которого один поток может попросить другой поток завершить свою работу.
+
+1. isInterrupted()
+
++ Проверяет флаг прерывания у текущего объекта потока.
++ Флаг прерывания не сбрасывается.
++ Используется для проверки состояния другого потока.
+
+```java
+public class IsInterruptedExample {
+    public static void main(String[] args) throws InterruptedException {
+        Thread thread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                System.out.println("Работаю...");
+            }
+            System.out.println("Поток прерван.");
+        });
+
+        thread.start();
+        Thread.sleep(1000); // Даем потоку немного поработать
+        thread.interrupt(); // Прерываем поток
+    }
+}
+Поток завершает работу, когда видит, что флаг прерывания установлен.
+```
+
+2. interrupted()
+
++   Статический метод, который проверяет флаг прерывания текущего потока.
++   Сбрасывает флаг прерывания после вызова (ставит его в false).
++   Используется для выполнения действий и одновременного сброса флага.
+
+```java
+public class InterruptedExample {
+    public static void main(String[] args) throws InterruptedException {
+        Thread thread = new Thread(() -> {
+            while (true) {
+                if (Thread.interrupted()) {
+                    System.out.println("Флаг прерывания сброшен.");
+                    break;
+                }
+            }
+        });
+
+        thread.start();
+        Thread.sleep(1000); // Даем потоку немного поработать
+        thread.interrupt(); // Прерываем поток
+    }
+}
+Поток завершает работу после обнаружения прерывания. 
+Флаг прерывания автоматически сбрасывается.
+```
+
+3. interrupt()
+
++   Устанавливает флаг прерывания у целевого потока.
++   Если поток находится в блокирующем состоянии (например, в ожидании sleep, wait), выбрасывается InterruptedException.
+```java
+public class InterruptExample {
+    public static void main(String[] args) throws InterruptedException {
+        Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                System.out.println("Поток был прерван во время сна.");
+            }
+        });
+
+        thread.start();
+        Thread.sleep(1000); // Даем потоку немного поспать
+        thread.interrupt(); // Прерываем поток
+    }
+}
+Если поток находится в состоянии сна, 
+он выходит из него с выбросом InterruptedException.
+```
+
+#### Ключевые моменты
+
++    Используй interrupt() для отправки сигнала потоку.
++    Проверяй состояние флага с помощью isInterrupted(), если не хочешь его сбрасывать.
++    Применяй interrupted(), если необходимо сбросить флаг после проверки.
+
+| Метод           | Класс	               | Описание                                                                                                          |
+|-----------------|----------------------|-------------------------------------------------------------------------------------------------------------------|
+| isInterrupted() | Thread               | Возвращает true, если текущий поток был прерван. Не сбрасывает флаг прерывания.                                   |
+| interrupted()   | Thread (статический) | Проверяет, был ли текущий поток прерван, и сбрасывает флаг прерывания (устанавливает его в false).                |
+| interrupt()     | Thread               | Устанавливает флаг прерывания у целевого потока (это просто сигнал, поток решает, как реагировать на прерывание). |
+
 [К оглавлению](#Multithreading)
 
 # 10. Что происходит при вызове Thread.interrupt()?
+
+Метод interrupt() устанавливает флаг прерывания (interruption flag) у указанного потока. Это своего рода сигнал потоку:
+«Тебя просят остановиться». Однако, важно понимать, что interrupt() не заставляет поток немедленно завершить работу — он
+лишь передает эту просьбу, и поток должен самостоятельно обработать ее.
+
+#### Два сценария при вызове Thread.interrupt()
+
++ Поток НЕ находится в блокирующем состоянии
+  + Флаг прерывания у потока устанавливается в true.
+  + Поток может проверить этот флаг с помощью методов isInterrupted() или interrupted() и принять решение о завершении
+    работы.
+
++ Поток находится в блокирующем состоянии
+  + Если поток выполняет такие методы, как Thread.sleep(), Object.wait(), join(), или другие методы ожидания, то они
+    выбрасывают исключение InterruptedException, и флаг прерывания сбрасывается в false. Поток должен самостоятельно
+    обработать это исключение.
+
+```java
+Поток НЕ в блокирующем состоянии
+
+public class InterruptExample {
+    public static void main(String[] args) throws InterruptedException {
+        Thread thread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                System.out.println("Работаю...");
+            }
+            System.out.println("Поток завершает работу.");
+        });
+
+        thread.start();
+        Thread.sleep(1000); // Даем потоку поработать
+        thread.interrupt(); // Прерываем поток
+    }
+}
+Поток продолжает работать, пока флаг прерывания не установлен.
+После вызова interrupt(), флаг прерывания становится true, 
+и поток завершает свою работу.
+```
+
+```java
+Поток в блокирующем состоянии
+
+public class InterruptBlockingExample {
+  public static void main(String[] args) throws InterruptedException {
+    Thread thread = new Thread(() -> {
+      try {
+        System.out.println("Поток начинает спать...");
+        Thread.sleep(5000); // Переход в блокирующее состояние
+      } catch (InterruptedException e) {
+        System.out.println("Поток прерван во время сна.");
+      }
+    });
+
+    thread.start();
+    Thread.sleep(1000); // Даем потоку начать сон
+    thread.interrupt(); // Прерываем поток
+  }
+}
+Поток выходит из состояния сна и выбрасывает InterruptedException.
+Обработка исключения позволяет потоку завершить работу.
+```
+
+#### Ключевые моменты про interrupt()
+
++ Не завершает поток немедленно.
+  + Поток сам решает, как реагировать на прерывание. Он должен регулярно проверять флаг прерывания или обрабатывать InterruptedException.
+
++ Необходима обработка InterruptedException.
+  + Если поток находится в блокирующем состоянии, такие методы, как sleep(), wait(), или join() выбрасывают исключение, и поток может обработать его для корректного завершения.
+
++ Используется как сигнал.
+  + interrupt() сообщает потоку о необходимости остановиться, но сам по себе ничего не делает, кроме установки флага или генерации исключения в блокирующем состоянии.
 
 [К оглавлению](#Multithreading)
 
 # 11. Перечислите ВСЕ причины по которым может быть выброшено InterruptedException.
 
+#### Причины выброса InterruptedException
+
+В Java исключение InterruptedException выбрасывается, когда поток, находящийся в блокирующем состоянии, получает сигнал
+прерывания с помощью метода interrupt(). Блокирующие состояния — это ситуации, когда поток ожидает завершения действия
+или освобождения ресурса.
+#### Список методов, которые могут выбросить InterruptedException:
+
++ Методы класса Thread:
+  + Thread.sleep(long millis)
+  + Thread.sleep(long millis, int nanos)
+  +  Thread.join()
+  + Thread.join(long millis)
+  + Thread.join(long millis, int nanos)
+
++ Методы синхронизации Object:
+  + Object.wait()
+  + Object.wait(long timeout)
+  + Object.wait(long timeout, int nanos)
+
++ Методы интерфейса BlockingQueue (и его реализаций, например, ArrayBlockingQueue, LinkedBlockingQueue):
+  + put(E e)
+  + take()
+  + poll(long timeout, TimeUnit unit)
+  + offer(E e, long timeout, TimeUnit unit)
+
++ Методы интерфейса Lock (и его реализаций, например, ReentrantLock):
+  + lockInterruptibly()
+  + tryLock(long time, TimeUnit unit)
+
++ Методы интерфейса ExecutorService (и его реализаций, например, ThreadPoolExecutor):
+  + invokeAll(Collection<? extends Callable<T>> tasks)
+  + invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+  + invokeAny(Collection<? extends Callable<T>> tasks)
+  + invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+
++ Методы класса CountDownLatch:
+  + await()
+  + await(long timeout, TimeUnit unit)
+
++ Методы класса CyclicBarrier:
+  + await()
+  + await(long timeout, TimeUnit unit)
+
++ Методы класса Semaphore:
+  + acquire()
+  + acquire(int permits)
+  + acquireUninterruptibly() (если поток был прерван до вызова метода, но сам метод не выбросит исключение)
+  + tryAcquire(long timeout, TimeUnit unit)
+
++ Методы класса Exchanger:
+  + exchange(V x)
+  + exchange(V x, long timeout, TimeUnit unit)
+
++ Методы класса Phaser:
+  + awaitAdvanceInterruptibly(int phase)
+  + awaitAdvanceInterruptibly(int phase, long timeout, TimeUnit unit)
+
++ Методы класса Future:
+  + get()
+  + get(long timeout, TimeUnit unit)
+
+#### Когда выбрасывается InterruptedException?
+
++ Прерывание сна: Поток вызвал метод sleep() и был прерван.
++ Прерывание ожидания: Поток вызвал методы wait() или await() (на объектах или в синхронизаторах) и был прерван.
++ Прерывание блокировки: Поток пытался захватить блокировку с помощью lockInterruptibly() или аналогичных методов, и в
+  это время был прерван.
++ Прерывание работы с синхронизаторами: Поток использовал методы синхронизаторов (таких как CountDownLatch, Semaphore,
+  Exchanger, CyclicBarrier) и был прерван.
++ Прерывание выполнения задач: Поток ожидал завершения выполнения задач через методы invokeAll() или invokeAny() и
+  получил сигнал прерывания.
+
+#### Ключевые моменты
+
++ InterruptedException всегда возникает только в блокирующих операциях, когда поток не может немедленно продолжить
+  выполнение.
++ Метод, выбрасывающий InterruptedException, сбрасывает флаг прерывания. Поток должен заново установить его, если
+  необходимо.
++ Это проверяемое (checked) исключение, которое обязательно нужно обрабатывать или пробрасывать выше.
+
 [К оглавлению](#Multithreading)
 
 # 12. Назовите отличия synchronized{} и ReentrantLock.
 
+1. Синтаксис
+
+`synchronized` — это встроенный механизм, который используется в блоках или методах:
+```java
+synchronized (object) {
+// код с доступом к общим ресурсам
+}
+```
+`ReentrantLock` — это класс из библиотеки java.util.concurrent.locks, который нужно явно создавать и управлять:
+```java
+ReentrantLock lock = new ReentrantLock();
+lock.lock();
+try {
+    // код с доступом к общим ресурсам
+} finally {
+    lock.unlock();
+}
+```
+2. Блокировка
+
+`synchronized`:
++ Автоматически блокирует объект.
++ Блокировка освобождается автоматически, когда поток выходит из блока или метода.
+
+`ReentrantLock`:
++ Требует явного вызова lock() для захвата блокировки и unlock() для её освобождения.
++ Если unlock() не вызван (например, из-за исключения), может произойти блокировка ресурса.
+
+3. Попытка захватить блокировку
+
+`synchronized`:
++ Если блокировка занята, поток ждет бесконечно, пока она не будет освобождена.
+
+`ReentrantLock`:
++ Позволяет попытаться захватить блокировку с помощью:
+  + tryLock() — не блокирует поток, возвращает false, если блокировка занята.
+  + tryLock(long time, TimeUnit unit) — пытается захватить блокировку в течение заданного времени.
+
+4. Ожидание с прерыванием
+
+`synchronized`:
++ Поток, ожидающий захвата блокировки, не может быть прерван. Он будет ждать до тех пор, пока блокировка не освободится.
+
+`ReentrantLock`:
++ Поток может быть прерван с помощью lockInterruptibly(), если его вызвали с сигналом interrupt().
+
+5. Гибкость (Условные переменные)
+
+`synchronized`:
++ Использует встроенные методы wait(), notify(), notifyAll() для управления состоянием потоков.
++ Эти методы работают только с текущим объектом монитора.
+
+`ReentrantLock`:
++ Предоставляет более гибкий механизм через объект Condition, который можно использовать для точного управления
+  ожиданием и уведомлением:
+```java
+Condition condition = lock.newCondition();
+condition.await();  // ожидание
+condition.signal(); // уведомление одного потока
+condition.signalAll(); // уведомление всех потоков
+```
+6. Производительность
+
+`synchronized`:
+
++ Начиная с Java 1.6, синхронизация была оптимизирована (например, появился lightweight locking), что делает её
+  конкурентоспособной с ReentrantLock в простых случаях.
+
+`ReentrantLock`:
++ Может быть быстрее в сложных сценариях, особенно если требуется управление временем ожидания или использование
+  условий.
+
+7. Повторный захват блокировки (Reentrancy)
+
+`synchronized`:
++ Поддерживает повторный захват блокировки одним и тем же потоком.
+
+`ReentrantLock`:
++ Также поддерживает повторный захват блокировки, и предоставляет информацию о количестве захватов через getHoldCount().
+
+8. Отладка
+
+`synchronized`:
++ Труднее получить информацию о состоянии блокировки (например, кто её удерживает).
+
+`ReentrantLock`:
++ Предоставляет методы для получения состояния блокировки:
+  + isLocked() — заблокирован ли ресурс.
+  + isHeldByCurrentThread() — удерживает ли текущий поток - блокировку.
+  + getQueueLength() — количество потоков, ожидающих блокировки.
+
+#### Когда использовать?
+
+`synchronized`:
++ Для простых сценариев синхронизации, где не требуется сложное управление блокировкой или ожиданием.
+```java
+    synchronized (this) {
+        sharedResource++;
+    }
+```
+`ReentrantLock`:
+
++ Для сложных сценариев, где требуется:
+  + Попытка захвата блокировки (tryLock).
+  + Управление временем ожидания.
+  + Использование условных переменных (Condition).
+  + Прерываемое ожидание (lockInterruptibly).
+
+```java
+ReentrantLock lock = new ReentrantLock();
+try {
+    if (lock.tryLock(1, TimeUnit.SECONDS)) {
+        sharedResource++;
+    }
+} finally {
+    lock.unlock();
+}
+```
 [К оглавлению](#Multithreading)
 
 # 13. Приведите наиболее существенное отличие между CountDownLatch и CyclicBarrier.
+
+Главное различие между этими двумя синхронизаторами заключается в их назначении и поведении после выполнения задачи:
+
+#### Назначение
+
+`CountDownLatch`:
++ Используется для ожидания завершения определенного числа операций перед продолжением основного потока.
++ Часто применяется, когда основной поток должен дождаться выполнения нескольких потоков.
++ Одноразовый механизм: после того как счетчик (count) доходит до нуля, объект CountDownLatch больше не может быть
+   использован.
+
+`CyclicBarrier`:
++ Используется для синхронизации группы потоков: все потоки должны достичь определенной точки (барьера), после чего они
+   продолжают выполнение.
++ Повторно используемый механизм: после достижения барьера он сбрасывается и может использоваться снова.
+
+#### Поведение
+
+`CountDownLatch`:
++ Имеет счетчик (count), который уменьшается вызовом метода countDown(). Когда счетчик достигает нуля, потоки,
+   вызвавшие метод await(), продолжают выполнение.
++ Потоки, уменьшающие счетчик, не блокируются.
+
+`CyclicBarrier`:
++ Потоки вызывают метод await() и блокируются до тех пор, пока все потоки не достигнут барьера.
++ После достижения барьера все потоки продолжают выполнение.
+
+```java
+CountDownLatch: ожидание завершения работы потоков
+
+import java.util.concurrent.CountDownLatch;
+
+public class CountDownLatchExample {
+  public static void main(String[] args) throws InterruptedException {
+    int threadCount = 3;
+    CountDownLatch latch = new CountDownLatch(threadCount);
+
+    for (int i = 0; i < threadCount; i++) {
+      new Thread(() -> {
+        System.out.println(Thread.currentThread().getName() + " выполняет работу.");
+        latch.countDown(); // Уменьшаем счетчик
+      }).start();
+    }
+
+    latch.await(); // Ждем, пока счетчик станет равным 0
+    System.out.println("Все потоки завершили работу.");
+  }
+}
+```
+
+```java
+CyclicBarrier: синхронизация потоков
+
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+
+public class CyclicBarrierExample {
+  public static void main(String[] args) {
+    int threadCount = 3;
+    CyclicBarrier barrier = new CyclicBarrier(threadCount,
+            () -> System.out.println("Все потоки достигли барьера. Продолжаем выполнение."));
+
+    for (int i = 0; i < threadCount; i++) {
+      new Thread(() -> {
+        System.out.println(Thread.currentThread().getName() + " выполняет работу.");
+        try {
+          barrier.await(); // Ждем, пока все потоки достигнут барьера
+        } catch (InterruptedException | BrokenBarrierException e) {
+          e.printStackTrace();
+        }
+      }).start();
+    }
+  }
+}
+```
+
+| Характеристика           | CountDownLatch	                          | CyclicBarrier                         |
+|--------------------------|------------------------------------------|------------------------------------------|
+| Назначение               | Ожидание завершения операций             | Синхронизация группы потоков.            |
+| Одноразовый/Многоразовый | Одноразовый                              | Многоразовый                             |
+| Методы                   | countDown(), await()                     | await()                                  |
+| Поведение потоков        | Уменьшающий счетчик поток не блокируется | Потоки блокируются до достижения барьера |
+| Использование            | Координация основного потока с другими   | Синхронизация группы потоков             |
 
 [К оглавлению](#Multithreading)
 
 # 14. Приведите наиболее существенное отличие между CyclicBarrier и Phaser.
 
+Главное различие между этими двумя механизмами синхронизации заключается в их гибкости и управлении числом участников.
+
+#### Назначение
+
+`CyclicBarrier`:
++ Используется для синхронизации фиксированного числа потоков. Все потоки должны достичь барьера, чтобы продолжить
+   выполнение.
++ Число участников указывается при создании и остается неизменным на протяжении работы.
+
+`Phaser`:
++ Более гибкий и поддерживает динамическое управление числом участников (регистрация и снятие потоков во время
+   выполнения).
++ Используется для синхронизации нескольких этапов (фаз) выполнения группы потоков.
+
+#### Управление участниками
+
+`CyclicBarrier`:
++ Количество участников задается при создании и не может измениться. Все потоки должны достичь барьера.
++ Если поток выбывает (например, прерывается), это может привести к исключению BrokenBarrierException.
+
+`Phaser`:
++ Потоки могут регистрироваться или сниматься динамически с помощью методов register() и arriveAndDeregister().
++ Поддерживает выполнение задач с переменным числом потоков на разных фазах.
+
+#### Поддержка фаз
+
+`CyclicBarrier`:
++ Не поддерживает понятия фаз. Работает с единственной точкой синхронизации.
+
+`Phaser`:
++ Поддерживает многофазные барьеры, где потоки проходят через последовательные этапы.
++ Номер текущей фазы можно получить через getPhase().
+
+```java
+CyclicBarrier: синхронизация фиксированного числа потоков
+
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+
+public class CyclicBarrierExample {
+  public static void main(String[] args) {
+    int threadCount = 3;
+    CyclicBarrier barrier = new CyclicBarrier(threadCount,
+            () -> System.out.println("Барьер достигнут. Продолжаем выполнение."));
+
+    for (int i = 0; i < threadCount; i++) {
+      new Thread(() -> {
+        System.out.println(Thread.currentThread().getName() + " выполняет работу.");
+        try {
+          barrier.await(); // Ждем, пока все потоки достигнут барьера
+        } catch (InterruptedException | BrokenBarrierException e) {
+          e.printStackTrace();
+        }
+      }).start();
+    }
+  }
+}
+```
+
+```java
+Phaser: синхронизация нескольких фаз
+
+import java.util.concurrent.Phaser;
+
+public class PhaserExample {
+  public static void main(String[] args) {
+    Phaser phaser = new Phaser(1); // Главный поток регистрируется
+
+    for (int i = 0; i < 3; i++) {
+      int phase = i;
+      phaser.register(); // Регистрируем новый поток
+      new Thread(() -> {
+        System.out.println(Thread.currentThread().getName() + " выполняет фазу " + phase);
+        phaser.arriveAndAwaitAdvance(); // Завершаем текущую фазу и ждем
+      }).start();
+    }
+
+    phaser.arriveAndAwaitAdvance(); // Главный поток завершает первую фазу
+    System.out.println("Все потоки завершили фазу 0. Продолжаем.");
+
+    phaser.arriveAndDeregister(); // Главный поток снимается с регистрации
+  }
+}
+```
+
+| Характеристика         | CountDownLatch	                            | CyclicBarrier                                          |
+|------------------------|--------------------------------------------|--------------------------------------------------------|
+| Назначение             | Синхронизация фиксированного числа потоков | Синхронизация потоков с динамическим числом участников |
+| Управление участниками | Фиксированное                              | Динамическое (регистрация/снятие участников)           |
+| Поддержка фаз          | Нет                                        | Да                                                     |
+| Методы                 | await()                                    | arrive(), arriveAndAwaitAdvance(), register()          |
+| Гибкость               | Меньше                                     | Больше                                                 |
+
+#### Когда использовать?
+
++ Используйте CyclicBarrier, если: Число участников известно заранее и не изменяется. Нужна простая точка синхронизации.
++ Используйте Phaser, если: Число участников может изменяться. Нужно синхронизировать выполнение нескольких фаз.
+
 [К оглавлению](#Multithreading)
 
 # 15. Расскажите про Exchanger.
 
+Exchanger — это инструмент из пакета java.util.concurrent, который используется для синхронизации двух потоков, позволяя
+им обмениваться данными. Каждый поток предоставляет некоторый объект другому потоку и получает взамен объект от него.
+
+Это удобно в ситуациях, где два потока работают с разделяемыми данными, например, один поток производит данные, а другой
+их обрабатывает.
+
+#### Как работает Exchanger?
+
++ Один поток вызывает метод exchange(), передавая объект для обмена. Этот поток блокируется до тех пор, пока другой
+  поток тоже не вызовет exchange().
++ Когда второй поток вызывает exchange(), происходит обмен объектами, и оба потока продолжают выполнение.
++ Если второй поток не вызывает exchange() в течение определенного времени (если указано), первый поток может получить
+  исключение TimeoutException.
+```java
+Сценарий: обмен данными между двумя потоками
+
+import java.util.concurrent.Exchanger;
+
+public class ExchangerExample {
+  public static void main(String[] args) {
+    Exchanger<String> exchanger = new Exchanger<>();
+
+    // Поток 1: Отправляет сообщение и получает ответ
+    new Thread(() -> {
+      try {
+        String message = "Привет от Потока 1";
+        System.out.println("Поток 1 отправляет: " + message);
+        String response = exchanger.exchange(message);
+        System.out.println("Поток 1 получил: " + response);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }).start();
+
+    // Поток 2: Отправляет ответ и получает сообщение
+    new Thread(() -> {
+      try {
+        String message = "Ответ от Потока 2";
+        System.out.println("Поток 2 отправляет: " + message);
+        String response = exchanger.exchange(message);
+        System.out.println("Поток 2 получил: " + response);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }).start();
+  }
+}
+```
+
+#### Основные методы
+
++ exchange(T x): передает объект x другому потоку и возвращает объект, переданный этим потоком.
++ exchange(T x, long timeout, TimeUnit unit): делает то же самое, но с указанием времени ожидания. Если другой поток не
+  вызовет exchange() за это время, бросается TimeoutException.
+
+#### Когда использовать Exchanger?
+
++ Обработка данных между потоками: один поток производит данные, другой их обрабатывает (например,
+  шифрование/дешифрование).
++ Обмен промежуточными результатами: в больших вычислительных задачах, где потоки обмениваются частичными результатами.
++ Буферизация: один поток наполняет буфер данными, другой поток очищает его.
+
+#### Потенциальные проблемы
+
++ Блокировка: Если один поток вызвал exchange(), а другой поток не сделал этого, первый поток будет заблокирован.
++ Исключения:
+  + InterruptedException: если поток был прерван во время ожидания.
+  + TimeoutException: если второй поток не вызвал exchange() за отведенное время.
+
+| Инструмент     | Назначение	                                        |
+|----------------|----------------------------------------------------|
+| Exchanger      | Обмен данными между двумя потоками                 |
+| CountDownLatch | Ожидание завершения работы заданного числа потоков |
+| CyclicBarrier  | Синхронизация группы потоков на общей точке        |
+| Phaser         | Многофазная синхронизация потоков                  |
+
 [К оглавлению](#Multithreading)
 
 # 16. Отличие Thread.start() и Thread.run()?
+
+Основное различие заключается в том, запускается ли поток параллельно с основным или просто вызывается метод в текущем
+потоке.
+
+`Thread.start()`
+
++ Этот метод запускает новый поток.
++ Создается отдельный поток выполнения, и метод run() выполняется в этом новом потоке.
++ Управление передается планировщику потоков, который решает, когда новый поток начнет выполнение.
+
+```java
+public class ThreadStartExample {
+    public static void main(String[] args) {
+        Thread thread = new Thread(() -> System.out.println("Это выполняется в новом потоке: " + Thread.currentThread().getName()));
+        thread.start(); // Запуск нового потока
+        System.out.println("Это выполняется в основном потоке: " + Thread.currentThread().getName());
+    }
+}
+```
+`Thread.run()`
+
++ Это обычный вызов метода, который выполняется в текущем потоке.
++ Не запускает новый поток. Метод run() выполняется как обычный метод, вызываемый в текущем потоке.
+
+```java
+public class ThreadRunExample {
+    public static void main(String[] args) {
+        Thread thread = new Thread(() -> System.out.println("Это выполняется в текущем потоке: " + Thread.currentThread().getName()));
+        thread.run(); // Выполнение в текущем потоке
+        System.out.println("Это выполняется в основном потоке: " + Thread.currentThread().getName());
+    }
+}
+```
+
+| Характеристика           | Thread.start()	                          | Thread.run()                             |
+|--------------------------|------------------------------------------|------------------------------------------|
+| Создание нового потока   | Да                                       | Нет                                      |
+| Параллельное выполнение  | Код в run() выполняется в новом потоке   | Код в run() выполняется в текущем потоке |
+| Управление планировщиком | Передает управление планировщику потоков | Не передает управление планировщику      |
+| Использование            | Для запуска потоков                      | Для вызова метода как обычного           |
+
+#### Ошибка, которую нужно избегать
+
+Если вместо start() случайно вызвать run(), то новый поток не будет создан, и программа выполнится в одном потоке. Это
+может привести к неожиданному поведению, особенно в многопоточных приложениях.
+
+```java
+public class ThreadRunMistake {
+    public static void main(String[] args) {
+        Thread thread = new Thread(() -> System.out.println("Ошибка: выполняется в текущем потоке: " + Thread.currentThread().getName()));
+        thread.run(); // Неправильный вызов, поток не создается!
+    }
+}
+
+```
 
 [К оглавлению](#Multithreading)
 
