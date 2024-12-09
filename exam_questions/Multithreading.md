@@ -1566,25 +1566,700 @@ public class ThreadRunMistake {
 
 # 17. Объясните ключевое слово volatile.
 
+Ключевое слово volatile в Java используется для указания переменной, доступ к которой осуществляется несколькими
+потоками. Оно гарантирует, что:
+
++ Все потоки видят одно и то же актуальное значение переменной.
++ Операции записи и чтения переменной являются атомарными.
+
+#### Как работает volatile?
+
+Когда переменная объявляется как volatile, она не кэшируется потоками. Вместо этого:
+
++ Поток всегда читает значение переменной из главной памяти (heap memory).
++ Изменения, сделанные одним потоком, сразу становятся видимыми для других потоков.
+
+```java
+Пример без volatile
+
+class SharedData {
+  private boolean running = true;
+
+  public void stop() {
+    running = false; // Изменение переменной
+  }
+
+  public void start() {
+    while (running) {
+      // Бесконечный цикл
+    }
+    System.out.println("Поток остановлен");
+  }
+}
+
+Если running не объявлено как volatile, поток, работающий в методе start(), 
+может кэшировать переменную, и изменения, сделанные в методе stop(), 
+могут не быть видны другому потоку.
+```
+
+```java
+Решение с использованием volatile
+
+class SharedData {
+  private volatile boolean running = true;
+
+  public void stop() {
+    running = false; // Изменение переменной
+  }
+
+  public void start() {
+    while (running) {
+      // Бесконечный цикл
+    }
+    System.out.println("Поток остановлен");
+  }
+}
+
+С volatile изменения переменной running, сделанные в методе stop(),
+немедленно станут видны для потока, выполняющего метод start().
+```
+
+#### Особенности volatile
+
++ Гарантия видимости:
+  + Переменная volatile всегда читается и записывается из/в главную память.
+  + Это предотвращает использование устаревшего значения из локального кэша потока.
+
++ Атомарность записи и чтения:
+  + Операции чтения и записи volatile переменной являются атомарными.
+  + Однако сложные операции (например, i++) не являются атомарными, даже если i объявлен как volatile.
+
+#### Когда использовать volatile?
+
++ Переменная используется для сигналов между потоками (например, для остановки потока).
++ Переменная читается и изменяется только одним потоком, но читается несколькими потоками.
++ Не нужно сложной синхронизации, как в случае с synchronized.
+
+#### Когда volatile не подходит?
+
++ Если требуется блокировка или сложная синхронизация (например, операции i++ или коллекции).
++ Для составных операций, таких как:
+  + counter++ (это операция из трёх шагов: чтение, изменение, запись).
+  + Сложные структуры данных.
+
+Для таких случаев лучше использовать:
++ synchronized
++ Atomic классы из java.util.concurrent.atomic (например, AtomicInteger).
+
+```java
+Пример: ограничение volatile
+
+class Counter {
+  private volatile int count = 0;
+
+  public void increment() {
+    count++; // НЕ атомарная операция
+  }
+
+  public int getCount() {
+    return count;
+  }
+}
+
+Здесь count++ не атомарно. Потоки могут столкнуться с условием гонки (race condition). 
+Лучше использовать AtomicInteger:
+
+        import java.util.concurrent.atomic.AtomicInteger;
+
+class Counter {
+  private AtomicInteger count = new AtomicInteger(0);
+
+  public void increment() {
+    count.incrementAndGet(); // Атомарная операция
+  }
+
+  public int getCount() {
+    return count.get();
+  }
+}
+```
+
+| Критерий           | volatile	                    | synchronized                                  |
+|--------------------|------------------------------|-----------------------------------------------|
+| Гарантия видимости | Да                           | Да                                            |
+| Атомарность        | Только для чтения и записи   | Да                                            |
+| Блокировка         | Нет                          | Да (с блокировкой монитора)                   |
+| Производительность | Выше, так как нет блокировок | Меньше из-за накладных расходов на блокировки |
+
 [К оглавлению](#Multithreading)
 
 # 18. Расскажите про приоритеты потока
+
+Приоритеты потоков в Java — это механизм, который позволяет управлять порядком выполнения потоков с помощью приоритетных
+значений. Однако стоит отметить, что реализация приоритетов зависит от планировщика операционной системы и JVM, и не
+гарантирует строгую последовательность выполнения потоков.
+
+#### Как работают приоритеты потоков?
+
+В Java каждый поток имеет приоритет — целочисленное значение в диапазоне от Thread.MIN_PRIORITY до Thread.MAX_PRIORITY.
+По умолчанию все потоки получают нормальный приоритет, равный Thread.NORM_PRIORITY.
+
++ MIN_PRIORITY: минимальный приоритет, значение 1.
++ NORM_PRIORITY: нормальный приоритет, значение 5.
++ MAX_PRIORITY: максимальный приоритет, значение 10.
+
+```java
+Приоритет потока можно установить с помощью метода setPriority(int priority) класса Thread. Например:
+
+public class ThreadPriorityExample {
+  public static void main(String[] args) {
+    Thread highPriorityThread = new Thread(() -> System.out.println("Этот поток имеет высокий приоритет"));
+    Thread lowPriorityThread = new Thread(() -> System.out.println("Этот поток имеет низкий приоритет"));
+
+    highPriorityThread.setPriority(Thread.MAX_PRIORITY); // Устанавливаем высокий приоритет
+    lowPriorityThread.setPriority(Thread.MIN_PRIORITY);  // Устанавливаем низкий приоритет
+
+    highPriorityThread.start();
+    lowPriorityThread.start();
+  }
+}
+```
+
+#### Планировщик потоков и приоритеты
+
+Java не гарантирует, что потоки с высоким приоритетом будут всегда выполняться раньше потоков с низким приоритетом. Всё
+зависит от планировщика потоков операционной системы. Однако на большинстве операционных систем с представлением
+приоритетов потоки с высоким приоритетом, как правило, получают больше процессорного времени.
+
+Примечание: В некоторых операционных системах и JVM, например, в Windows, приоритеты потоков могут иметь более явное
+влияние, в то время как на других, таких как Linux, они могут быть проигнорированы или им может быть уделено меньше
+внимания.
+
+#### Диапазон приоритетов
+
++ Thread.MIN_PRIORITY — 1: наименьший приоритет.
++ Thread.NORM_PRIORITY — 5: стандартный приоритет.
++ Thread.MAX_PRIORITY — 10: максимальный приоритет.
+
+```java
+Пример приоритетов
+
+public class PriorityExample {
+  public static void main(String[] args) {
+    Thread thread1 = new Thread(() -> {
+      for (int i = 0; i < 10; i++) {
+        System.out.println("Поток 1: " + i);
+      }
+    });
+
+    Thread thread2 = new Thread(() -> {
+      for (int i = 0; i < 10; i++) {
+        System.out.println("Поток 2: " + i);
+      }
+    });
+
+    thread1.setPriority(Thread.MIN_PRIORITY); // Низкий приоритет
+    thread2.setPriority(Thread.MAX_PRIORITY); // Высокий приоритет
+
+    thread1.start();
+    thread2.start();
+  }
+}
+
+В идеале потоки с более высоким приоритетом должны выполняться чаще, но это не всегда так.
+```
+
+#### Когда использовать приоритеты потоков?
+
++ Задачи с разным уровнем важности: Если в вашем приложении есть потоки, выполнение которых более критично (например,
+  потоки для обработки пользовательского ввода или работы с важными данными), вы можете задать им более высокий
+  приоритет.
++ Реализация квантования времени: Иногда потоки с низким приоритетом могут использоваться для задач, которые могут
+  подождать (например, фоновая обработка).
++ Реализация системы реального времени: В реальных приложениях с ограничениями по времени, например, в системах,
+  работающих с оборудованием или в играх, могут быть важны приоритеты для своевременного выполнения потоков.
+
+#### Проблемы с приоритетами
+
++ Старение (Starvation): Потоки с низким приоритетом могут никогда не получить процессорное время, если постоянно будут
+  запускаться потоки с более высоким приоритетом.
++ Недостаточное влияние: На некоторых системах приоритеты могут иметь слабое влияние на порядок выполнения потоков.
+
+#### Заключение
+
++ Приоритеты потоков могут быть полезными для управления выполнением задач с разной важностью.
++ Однако приоритеты потоков не гарантируют строгую последовательность выполнения, и их влияние зависит от операционной
+  системы и JVM.
++ Использовать приоритеты потоков нужно осторожно, чтобы избежать проблем с блокировками или старением потоков.
 
 [К оглавлению](#Multithreading)
 
 # 19. Что такое потоки-демоны?
 
+Потоки-демоны (daemon threads) в Java — это специальные фоновые потоки, предназначенные для выполнения вспомогательных
+задач, таких как обслуживание или мониторинг, которые не должны препятствовать завершению работы программы.
+
+Основное отличие потоков-демонов от обычных (пользовательских) потоков заключается в следующем: программа завершится,
+как только все пользовательские потоки завершат свою работу, даже если в приложении продолжают работать потоки-демоны.
+
+#### Ключевые особенности потоков-демонов
+
++ Фоновая работа: Потоки-демоны используются для выполнения задач, которые поддерживают основное приложение, например,
+  сборка мусора (Garbage Collector) или мониторинг.
++ Не блокируют завершение JVM: Если единственные оставшиеся активные потоки в приложении — это потоки-демоны, JVM
+  автоматически завершит их выполнение и остановит программу.
++ Настройка потока: Поток можно сделать демоном с помощью метода setDaemon(true) до вызова start().
++ Примеры потоков-демонов в Java:
+  + Garbage Collector — отвечает за управление памятью.
+  + JVM Watchdog Threads — следят за состоянием JVM.
+
+```java
+Как создать поток-демон?
+
+public class DaemonExample {
+    public static void main(String[] args) {
+        Thread daemonThread = new Thread(() -> {
+            while (true) {
+                System.out.println("Демон работает...");
+                try {
+                    Thread.sleep(1000); // Демон засыпает на 1 секунду
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
+
+        daemonThread.setDaemon(true); // Устанавливаем поток как демон
+        daemonThread.start(); // Запускаем поток
+
+        System.out.println("Главный поток завершен.");
+    }
+}
+
+Основной поток завершится, а JVM автоматически завершит поток-демон, даже если он ещё выполняется.
+```
+
+```java
+Вы можете проверить, является ли поток демоном, с помощью метода isDaemon():
+
+Thread thread = new Thread(() -> System.out.println("Работа потока"));
+System.out.println("Демон: " + thread.isDaemon()); // По умолчанию false
+```
+
+#### Что нужно помнить при работе с потоками-демонами
+
++ Настройка до запуска: Метод setDaemon(true) нужно вызывать до вызова start(). В противном случае будет выброшено
+  исключение IllegalThreadStateException.
++ Демон не завершает задачи: Потоки-демоны могут быть внезапно завершены JVM, поэтому они не подходят для выполнения
+  важных операций, например, записи данных на диск или завершения транзакций.
++ Использование с осторожностью: Потоки-демоны — это удобный инструмент, но их внезапное завершение может повлиять на
+  целостность данных.
+
+#### Когда использовать потоки-демоны?
+
++ Мониторинг: Отслеживание состояния системы или приложения.
++ Обслуживание: Фоновые операции, которые не критичны для завершения программы (например, сборка статистики или
+  журналирование).
++ Очистка: Удаление временных файлов или ресурсов в фоновом режиме.
+
 [К оглавлению](#Multithreading)
 
 # 20. Назовите все возможные состояния потока.
+
+Класс Thread в Java определяет набор возможных состояний потока. Они описаны в перечислении `java.lang.Thread.State` и
+представляют жизненный цикл потока. Состояний всего шесть:
+
++ `NEW` (новый)
+Поток находится в состоянии NEW, если он был создан, но ещё не был запущен с помощью метода start().
+
+```java
+Thread thread = new Thread(() -> System.out.println("Работа потока"));
+System.out.println(thread.getState()); // NEW
+```
++ `RUNNABLE` (готов к выполнению)
+
+Поток находится в состоянии RUNNABLE, если он запущен с помощью метода start(), но фактически может или ожидает
+выполнения.
+На этом этапе поток может находиться в очереди на выполнение из-за планировщика операционной системы.
+
+```java
+Thread thread = new Thread(() -> {
+    while (true) {} // Бесконечный цикл
+});
+thread.start();
+System.out.println(thread.getState()); // RUNNABLE
+```
++ `BLOCKED` (заблокирован)
+
+Поток находится в состоянии BLOCKED, если он пытается получить монитор объекта, но этот монитор уже занят другим потоком.
+Например, поток ожидает входа в synchronized-блок, но монитор объекта заблокирован.
+
+```java
+public class BlockedExample {
+    public static void main(String[] args) {
+        Object lock = new Object();
+
+        Thread thread1 = new Thread(() -> {
+            synchronized (lock) {
+                try {
+                    Thread.sleep(5000); // Удерживаем монитор 5 секунд
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
+
+        Thread thread2 = new Thread(() -> {
+            synchronized (lock) {
+                System.out.println("Этот код никогда не выполнится");
+            }
+        });
+
+        thread1.start();
+        thread2.start();
+
+        try {
+            Thread.sleep(1000);
+            System.out.println(thread2.getState()); // BLOCKED
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+```
+
++ `WAITING` (ожидание)
+
+Поток находится в состоянии WAITING, если он ждёт сигнала или уведомления от другого потока. Это состояние возникает при вызове методов:
+
++ Object.wait()
++ Thread.join() без тайм-аута
++ LockSupport.park()
+
+```java
+public class WaitingExample {
+    public static void main(String[] args) {
+        Thread thread1 = new Thread(() -> {
+            try {
+                Thread.currentThread().join(); // Бесконечное ожидание
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        thread1.start();
+
+        try {
+            Thread.sleep(1000);
+            System.out.println(thread1.getState()); // WAITING
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+```
+
++ `TIMED_WAITING` (ожидание с тайм-аутом)
+
+Поток находится в состоянии TIMED_WAITING, если он ждёт уведомления или выполнения события в течение определённого
+времени. Это состояние возникает при вызове методов:
+
++ Thread.sleep(time)
++ Object.wait(time)
++ Thread.join(time)
++ LockSupport.parkNanos(time)
++ LockSupport.parkUntil(time)
+
+```java
+public class TimedWaitingExample {
+    public static void main(String[] args) {
+        Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(5000); // Ожидание 5 секунд
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        thread.start();
+
+        try {
+            Thread.sleep(1000);
+            System.out.println(thread.getState()); // TIMED_WAITING
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+```
++ `TERMINATED` (завершён)
+
+Поток находится в состоянии TERMINATED, если он завершил своё выполнение. Это может произойти:
+
++ Когда поток завершил выполнение своего метода run().
++ Когда поток завершился с исключением.
+
+```java
+public class TerminatedExample {
+    public static void main(String[] args) {
+        Thread thread = new Thread(() -> System.out.println("Работа потока завершена"));
+        thread.start();
+
+        try {
+            thread.join(); // Дождёмся завершения потока
+            System.out.println(thread.getState()); // TERMINATED
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+```
+
+| Состояние     | Когда возникает	                                        |
+|---------------|---------------------------------------------------------|
+| NEW           | Поток создан, но не запущен.                            |
+| RUNNABLE      | Поток готов к выполнению или выполняется                |
+| BLOCKED       | Поток ожидает освобождения монитора                     |
+| WAITING       | Поток ждёт уведомления от другого потока без тайм-аута. |
+| TIMED_WAITING | Поток ждёт уведомления или события с тайм-аутом         |
+| TERMINATED    | Поток завершил выполнение                               |
 
 [К оглавлению](#Multithreading)
 
 # 21. Что такое race condition?
 
+Race Condition (состояние гонки) — это ошибка в многопоточной программе, которая возникает, когда два или более потока
+одновременно пытаются получить доступ и изменить общий ресурс, и результат выполнения программы становится
+непредсказуемым.
+
+#### Ключевые признаки Race Condition
+
++ Совместный доступ: Несколько потоков работают с одним и тем же ресурсом (например, переменной, файлом, коллекцией).
++ Отсутствие синхронизации: Нет механизмов, которые регулируют порядок или безопасность доступа к общему ресурсу.
++ Зависимость от порядка выполнения: Результат работы программы зависит от того, какой поток первым выполнил свою
+  операцию.
+
+```java
+Допустим, несколько потоков увеличивают значение одной переменной
+
+public class RaceConditionExample {
+    private static int counter = 0;
+
+    public static void main(String[] args) {
+        Runnable incrementTask = () -> {
+            for (int i = 0; i < 1000; i++) {
+                counter++;
+            }
+        };
+
+        Thread thread1 = new Thread(incrementTask);
+        Thread thread2 = new Thread(incrementTask);
+
+        thread1.start();
+        thread2.start();
+
+        try {
+            thread1.join();
+            thread2.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println("Counter: " + counter); // Результат может быть неверным!
+    }
+}
+
+Что происходит:
+Переменная counter изменяется двумя потоками одновременно.
+Инструкция counter++ не атомарна (включает чтение, изменение, запись).
+Итоговое значение counter становится непредсказуемым, 
+так как потоки могут перезаписывать результаты друг друга.
+```
+#### Как предотвратить Race Condition
+```java
+Синхронизация: Использовать блоки synchronized или методы для защиты общих ресурсов.
+
+public class SynchronizedExample {
+  private static int counter = 0;
+
+  public synchronized static void increment() {
+    counter++;
+  }
+
+  public static void main(String[] args) {
+    Runnable incrementTask = () -> {
+      for (int i = 0; i < 1000; i++) {
+        increment();
+      }
+    };
+
+    Thread thread1 = new Thread(incrementTask);
+    Thread thread2 = new Thread(incrementTask);
+
+    thread1.start();
+    thread2.start();
+
+    try {
+      thread1.join();
+      thread2.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    System.out.println("Counter: " + counter); // Результат корректен
+  }
+}
+```
+
+```java
+ReentrantLock: Более гибкая альтернатива synchronized, с 
+поддержкой дополнительных возможностей, например, таймаутов.
+
+import java.util.concurrent.locks.ReentrantLock;
+
+public class LockExample {
+  private static int counter = 0;
+  private static final ReentrantLock lock = new ReentrantLock();
+
+  public static void main(String[] args) {
+    Runnable incrementTask = () -> {
+      for (int i = 0; i < 1000; i++) {
+        lock.lock();
+        try {
+          counter++;
+        } finally {
+          lock.unlock();
+        }
+      }
+    };
+
+    Thread thread1 = new Thread(incrementTask);
+    Thread thread2 = new Thread(incrementTask);
+
+    thread1.start();
+    thread2.start();
+
+    try {
+      thread1.join();
+      thread2.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    System.out.println("Counter: " + counter); // Результат корректен
+  }
+}
+```
+
+```java
+Atomic-переменные: Использовать классы из пакета java.util.concurrent.atomic, 
+например, AtomicInteger, которые обеспечивают атомарные операции.
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicExample {
+  private static AtomicInteger counter = new AtomicInteger(0);
+
+  public static void main(String[] args) {
+    Runnable incrementTask = () -> {
+      for (int i = 0; i < 1000; i++) {
+        counter.incrementAndGet();
+      }
+    };
+
+    Thread thread1 = new Thread(incrementTask);
+    Thread thread2 = new Thread(incrementTask);
+
+    thread1.start();
+    thread2.start();
+
+    try {
+      thread1.join();
+      thread2.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    System.out.println("Counter: " + counter.get()); // Результат корректен
+  }
+}
+```
+
+#### Последствия Race Condition
+
++ Некорректное поведение программы: Неправильные вычисления, ошибки логики. 
++ Трудности в отладке: Проблемы возникают не всегда, а только при определённых условиях, зависящих от скорости
+  выполнения потоков.
++ Проблемы с безопасностью: Например, при неправильной обработке транзакций в банковских приложениях.
+
 [К оглавлению](#Multithreading)
 
 # 22. Что такое Thread Local переменная?
+
+Thread Local переменная — это специальный механизм в Java, который позволяет каждому потоку иметь свою собственную копию переменной. Переменная создаётся с помощью класса ThreadLocal.
+
+Каждый поток работает со своей копией переменной, изолированной от других потоков. Это особенно полезно, если требуется хранить состояние, уникальное для каждого потока, без необходимости синхронизации.
+#### Как работает ThreadLocal?
+
+При использовании ThreadLocal, переменная привязывается к конкретному потоку. Внутри класса Thread есть карта, которая связывает поток с его значениями ThreadLocal. Когда поток запрашивает значение через get(), возвращается его уникальная копия.
+#### Основные методы ThreadLocal
+
++ `set(T value)`
+Устанавливает значение для текущего потока.
+
++ `get()`
+Возвращает значение, связанное с текущим потоком. Если значение ещё не установлено, вызывается метод initialValue().
+
++ `remove()`
+Удаляет значение для текущего потока, освобождая память.
+
++ `withInitial(Supplier<? extends T>)`
+Создаёт ThreadLocal с заданным начальным значением.
+
+```java
+Представьте, что нужно отслеживать идентификатор запроса для каждого потока, обрабатывающего запросы:
+
+public class ThreadLocalExample {
+    // Создаём ThreadLocal переменную
+    private static final ThreadLocal<String> threadLocal = ThreadLocal.withInitial(() -> "Default Request ID");
+
+    public static void main(String[] args) {
+        Runnable task = () -> {
+            String threadName = Thread.currentThread().getName();
+            threadLocal.set("RequestID-" + threadName);
+            System.out.println(threadName + " -> " + threadLocal.get());
+        };
+
+        Thread thread1 = new Thread(task, "Thread-1");
+        Thread thread2 = new Thread(task, "Thread-2");
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+#### Где используется ThreadLocal?
+
++ Контексты для логирования:
+  Например, сохранять идентификатор запроса или сессию для каждого потока.
++ Объекты, которые нельзя шарить:
+  Например, форматеры (SimpleDateFormat), которые не потокобезопасны.
++ Пулл соединений с базой данных:
+  Связывание конкретного соединения с потоком.
+
+#### Проблемы ThreadLocal
+
++ Утечки памяти:
+  Если потоки из пула не освобождают значение ThreadLocal через remove(), это может привести к утечкам памяти.
++ Сложность тестирования:
+  Использование ThreadLocal усложняет тестирование, так как значения привязаны к потокам.
+
+#### Когда использовать ThreadLocal?
+
++ Когда нужно обеспечить потоковую изоляцию данных.
++ Когда нет необходимости в глобальной доступности переменной для всех потоков.
++ Если синхронизация ресурсов слишком дорогостоящая или сложная.
 
 [К оглавлению](#Multithreading)
 
