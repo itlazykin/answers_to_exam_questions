@@ -3171,3 +3171,86 @@ public class ParallelSearch {
 # 44. Что такое PipedStreams? Как они устроены?
 
 [К оглавлению](#Multithreading)
+
+# 45. ThreadSafe Singleton.
+
+При реализации шаблона Singleton необходимо учитывать проблему с visibility (Видимостью).
+Эту проблему можно решать двумя способами используя volatile или сразу публикуя объект через final.
+Многопоточные реализации аналогичны не многопоточным. Их можно разделить на две группы:
+
+1. Энергичная загрузка:
+
+```java
+Реализация с применением enum, аналогична однопоточной реализации
+
+public enum TrackerSingle {
+  INSTANCE;
+
+  public Item add(Item model) {
+    return model;
+  }
+
+  public static void main(String[] args) {
+    TrackerSingle tracker = TrackerSingle.INSTANCE;
+  }
+}
+```
+
+```java
+Реализация с применением поля final
+
+public class TrackerSingle {
+
+  private static final TrackerSingle INSTANCE = new TrackerSingle();
+
+  private TrackerSingle() {
+  }
+
+  public static TrackerSingle getInstance() {
+    return INSTANCE;
+  }
+
+  public Item add(Item model) {
+    return model;
+  }
+
+  public static void main(String[] args) {
+    TrackerSingle tracker = TrackerSingle.getInstance();
+  }
+}
+```
+
+2. Ленивая загрузка:
+
+```java
+Holder
+
+public class TrackerSingle {
+  private TrackerSingle() {
+  }
+
+  public static TrackerSingle getInstance() {
+    return Holder.INSTANCE;
+  }
+
+  public Item add(Item model) {
+    return model;
+  }
+
+  private static final class Holder {
+    private static final TrackerSingle INSTANCE = new TrackerSingle();
+  }
+
+  public static void main(String[] args) {
+    TrackerSingle tracker = TrackerSingle.getInstance();
+  }
+}
+```
+
+Если у вас нет необходимости в ленивой загрузке, то используйте шаблоны из первой группы. Например, инициализация кэша
+или базы данных.
+Если в приложении есть затратные ресурсы нужно использовать шаблоны с ленивой загрузкой. Здесь можно использовать только
+один шаблон - это Holder.
+Другие шаблоны будут отрицательно влиять на производительность системы.
+
+[К оглавлению](#Multithreading)
