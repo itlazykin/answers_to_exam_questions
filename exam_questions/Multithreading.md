@@ -88,6 +88,9 @@
 
 [44. Что такое PipedStreams? Как они устроены?](#44-что-такое-pipedstreams-как-они-устроены)
 
+[45. ThreadSafe Singleton.](#45-threadsafe-singleton)
+
+
 # 1. Чем отличается процесс от потока?
 
 Процесс и поток — это два ключевых понятия в многозадачности, но они отличаются по своему "масштабу" и организации
@@ -3122,53 +3125,977 @@ public class ParallelSearch {
 
 # 32. Как можно запустить параллельный поток (parallelStream)?
 
+В Java parallelStream позволяет выполнять операции над элементами коллекции в нескольких потоках параллельно. Это часть
+Stream API и используется для повышения производительности обработки больших объёмов данных.
+parallelStream разделяет данные на части и обрабатывает их в нескольких потоках с использованием Fork/Join Framework,
+который автоматически управляет пулом потоков.
+
+#### Создание и запуск parallelStream
+
+```java
+Из коллекции:
+
+import java.util.List;
+
+public class ParallelStreamExample {
+  public static void main(String[] args) {
+    List<Integer> numbers = List.of(1, 2, 3, 4, 5);
+
+    numbers.parallelStream()
+            .map(number -> number * 2)
+            .forEach(result -> System.out.println(
+                    Thread.currentThread().getName() + ": " + result));
+  }
+}
+
+parallelStream() создаёт параллельный поток данных.
+Метод map применяет преобразование (умножение числа на 2).
+Метод forEach выводит результат и показывает имя потока.
+```
+
+```java
+Из массива
+
+import java.util.Arrays;
+
+public class ParallelStreamFromArray {
+  public static void main(String[] args) {
+    int[] numbers = {1, 2, 3, 4, 5};
+
+    Arrays.stream(numbers)
+            .parallel()
+            .map(number -> number * 2)
+            .forEach(result -> System.out.println(
+                    Thread.currentThread().getName() + ": " + result));
+  }
+}
+
+Метод stream создаёт обычный поток, 
+а вызов parallel() преобразует его в параллельный.
+Операции над массивом выполняются параллельно.
+```
+
+```java
+Из Stream.generate
+
+import java.util.stream.Stream;
+
+public class ParallelStreamGenerate {
+  public static void main(String[] args) {
+    Stream.generate(() -> "Hello")
+            .parallel()
+            .limit(5)
+            .forEach(result -> System.out.println(
+                    Thread.currentThread().getName() + ": " + result));
+  }
+}
+
+Поток создаётся бесконечно с помощью Stream.generate.
+parallel включает параллельную обработку.
+```
+
+#### Особенности использования parallelStream
+
++ Параллельный поток не гарантирует порядок выполнения операций.
+  Если порядок важен, используйте метод forEachOrdered.
+```java
+numbers.parallelStream()
+        .forEachOrdered(System.out::println); // Сохраняет порядок
+```
++ Подходит для больших объёмов данных:
+Небольшие коллекции не получат преимущества, так как накладные расходы на создание потоков могут быть выше, чем выигрыш
+  в производительности.
++ Не рекомендуется использовать parallelStream для операций с сайд-эффектами (например, запись в файл), так как это
+  может привести к состоянию гонки.
+
+#### Когда использовать parallelStream?
+
++ Для обработки больших коллекций или массивов, когда операции независимы.
++ Если каждая операция относительно тяжёлая и оправдывает затраты на создание параллельных потоков.
++ В случаях, где результат не зависит от порядка выполнения.
+
 [К оглавлению](#Multithreading)
 
 # 33. Что делают методы parallel и sequential?
+
+Методы parallel() и sequential() в Java Stream API используются для переключения между параллельной и последовательной
+обработкой элементов потока.
+
+1. Метод parallel()
+
+Этот метод переводит текущий поток в режим параллельного выполнения. Параллельный поток делит элементы на части и
+обрабатывает их в нескольких потоках, используя Fork/Join Framework.
+
+```java
+import java.util.List;
+
+public class ParallelExample {
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(1, 2, 3, 4, 5);
+
+        numbers.stream()
+               .parallel()
+               .map(number -> number * 2)
+               .forEach(result -> System.out.println(
+                       Thread.currentThread().getName() + ": " + result));
+    }
+}
+
+stream() создаёт последовательный поток.
+parallel() переключает его в параллельный режим.
+Элементы обрабатываются в нескольких потоках.
+```
+
+2. Метод sequential()
+
+Этот метод переводит текущий поток в режим последовательного выполнения. Все операции выполняются в одном потоке.
+
+```java
+import java.util.List;
+
+public class SequentialExample {
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(1, 2, 3, 4, 5);
+
+        numbers.parallelStream()
+               .sequential()
+               .map(number -> number * 2)
+               .forEach(result -> System.out.println(
+                       Thread.currentThread().getName() + ": " + result));
+    }
+}
+
+parallelStream() создаёт параллельный поток.
+sequential() переключает его обратно в последовательный режим.
+Все элементы обрабатываются в одном потоке.
+```
+
+#### Принципы работы parallel() и sequential()
+
++ Вы можете переключать поток между режимами несколько раз.
+
+```java
+numbers.stream()
+       .parallel()
+       .sequential()
+       .parallel()
+       .map(number -> number * 2)
+       .forEach(System.out::println);
+
+В итоге, последнее состояние определяет, 
+как будет выполняться поток.
+В данном примере результат будет параллельным,
+так как последний вызов — parallel().
+```
+
++ parallel() эффективен для больших объёмов данных, если операции независимы и ресурсоёмки.
++ sequential() более предпочтителен для простых и небольших наборов данных, где накладные расходы на многопоточность не
+  оправданы.
+
+```java
+Пример сравнения:
+
+import java.util.stream.IntStream;
+
+public class ParallelVsSequential {
+    public static void main(String[] args) {
+        System.out.println("Sequential:");
+        IntStream.range(1, 6)
+                 .sequential()
+                 .forEach(System.out::println);
+
+        System.out.println("\nParallel:");
+        IntStream.range(1, 6)
+                 .parallel()
+                 .forEach(System.out::println);
+    }
+}
+
+Sequential: 1 2 3 4 5 (всегда упорядочено).
+Parallel: может быть, например, 
+4 2 1 5 3 (порядок зависит от выполнения потоков).
+```
 
 [К оглавлению](#Multithreading)
 
 # 34. Расскажите про порядок следования элементов в параллельном потоке и его особенностях.
 
+В параллельном потоке (parallelStream) элементы коллекции или данных обрабатываются в нескольких потоках одновременно, что может привести к нарушению порядка обработки
+и вывода элементов. Это связано с тем, что работа распределяется между потоками, и они выполняются независимо друг от
+друга.
+#### Особенности порядка в параллельном потоке
+
++ Если порядок важен, использование параллельного потока без дополнительных действий может привести к непредсказуемому результату.
+
+```java
+import java.util.stream.IntStream;
+
+public class ParallelStreamExample {
+    public static void main(String[] args) {
+        IntStream.range(1, 6)
+                 .parallel()
+                 .forEach(System.out::println);
+    }
+}
+
+порядок может быть произвольным
+```
++ Методы, такие как forEach, не гарантируют порядок.
++  Метод forEachOrdered сохраняет порядок исходных данных даже в параллельном потоке:
+```java
+IntStream.range(1, 6)
+         .parallel()
+         .forEachOrdered(System.out::println);
+
+```
++ Методы, такие как sorted(), восстанавливают порядок элементов в параллельном потоке. Однако это снижает
+  производительность, так как требует синхронизации и объединения данных:
+```java
+IntStream.range(1, 6)
+         .parallel()
+         .sorted()
+         .forEach(System.out::println);
+
+```
++ Параллельный поток делит данные на части (splits), обрабатывая их независимо. Порядок выполнения этих частей зависит
+  от реализации Spliterator, который используется потоком для деления данных.
+
+#### Когда нарушается порядок?
+
++ Метод forEach:
+Элементы обрабатываются в порядке, зависящем от потоков, а не от порядка коллекции.
++ Результаты промежуточных операций:
+Промежуточные операции, такие как map или filter, могут выполняться в любом порядке для отдельных частей данных.
+
+#### Когда сохраняется порядок?
+
++ Метод forEachOrdered:
+Обеспечивает выполнение конечной операции строго в порядке исходных данных.
+  Это может снизить производительность, так как требует дополнительной синхронизации.
++ Исходные коллекции с упорядоченной структурой:
+  Если поток создаётся из структур данных, поддерживающих порядок (например, List или LinkedHashMap), порядок будет
+  сохраняться при некоторых операциях (например, при использовании collect).
+
 [К оглавлению](#Multithreading)
 
 # 35. В чем разница между методами forEach и forEachOrdered?
+
+Основное различие между методами forEach и forEachOrdered заключается в гарантии порядка обработки элементов, особенно в
+контексте параллельных потоков (parallelStream).
+
++ Если нужен максимум производительности в параллельной обработке, используйте forEach.
++ Если нужен порядок обработки элементов, используйте forEachOrdered, но будьте готовы к снижению производительности.
 
 [К оглавлению](#Multithreading)
 
 # 36. В чем разница между применением метода peek() в последовательном и параллельном потоках?
 
+`Последовательный поток (stream())`
++ Элементы обрабатываются по порядку.
++ Метод peek() вызывается для каждого элемента в том порядке, в каком они проходят через конвейер.
++ Удобен для отладки, поскольку порядок обработки всегда предсказуем.
+
+`Параллельный поток (parallelStream())`
+
++ Поток делится на части для обработки разными потоками, поэтому peek() может срабатывать в произвольном порядке.
++ Элементы поступают в обработку по мере их готовности, порядок вызовов peek() не гарантируется.
++ Использование peek() для логгирования или отладки становится менее информативным.
+
 [К оглавлению](#Multithreading)
 
 # 37. Что делает метод unordered?
+
+Метод unordered() в Stream API используется для указания, что порядок элементов в потоке не важен. Это может привести к
+улучшению производительности,
+особенно при работе с параллельными потоками, поскольку операция освобождается от необходимости поддерживать порядок
+элементов.
+
+#### Ключевые особенности метода unordered()
+
++ Снимает ограничение на порядок:
+Если поток упорядочен (например, создан из коллекций, таких как List), вызов unordered() сообщает, что порядок элементов больше не имеет значения.
+ Это не означает, что элементы будут перемешаны. Поток может остаться в том же порядке, но это зависит от реализации.
+
++ Применимо к упорядоченным потокам:
+Преимущество unordered() особенно заметно для упорядоченных потоков, таких как stream() из списка или сортированного потока.
+
++ Улучшение производительности:
+В случае параллельных потоков освобождение от необходимости поддерживать порядок может снизить накладные расходы.
+
++ На неупорядоченные потоки не влияет:
+Если поток неупорядочен (например, создан из множества Set), вызов unordered() ничего не изменит.
 
 [К оглавлению](#Multithreading)
 
 # 38. Когда имеет смысл распараллеливать поток и какие при этом должны соблюдаться условия?
 
+Распараллеливание потока имеет смысл, если вы хотите ускорить выполнение операций над элементами потока за счёт
+использования нескольких ядер процессора. Однако его применение требует тщательной оценки,
+так как параллельная обработка связана с накладными расходами на управление потоками и синхронизацию.
+
++ Распараллеливайте потоки, если:
+Большой объём данных.
+Операции затратные и независимые.
+Порядок обработки не важен.
+
++ Избегайте распараллеливания, если:
+Маленький поток.
+Лёгкие операции.
+Используется разделяемая память или критически важен порядок.
+
 [К оглавлению](#Multithreading)
 
 # 39. Расскажите про Java NIO и её главные составляющие.
+
+Основная цель Java NIO — эффективная работа с большими объемами данных и асинхронный (неблокирующий) ввод-вывод.
+
+Буферы (Buffers):
+
+    Это контейнеры для данных.
+    Основные типы буферов: ByteBuffer, CharBuffer, IntBuffer, DoubleBuffer и др.
+    Методы буферов:
+        put() — запись данных в буфер.
+        get() — чтение данных из буфера.
+        flip() — переключение буфера из режима записи в режим чтения.
+        clear() — очищает буфер, готовя его для новой записи.
+
+Каналы (Channels):
+
+    Каналы похожи на потоки, но они двунаправленные.
+    Основные виды каналов:
+        FileChannel — для работы с файлами.
+        SocketChannel — для работы с сокетами.
+        ServerSocketChannel — для работы с серверными сокетами.
+        DatagramChannel — для работы с UDP.
+    Особенности:
+        Поддерживают асинхронный ввод/вывод.
+        Могут работать в комбинации с Selector.
+
+Селекторы (Selectors):
+
+    Позволяют одному потоку обслуживать множество каналов.
+    Используются в неблокирующем режиме работы.
+    Основные методы:
+        select() — проверяет готовность каналов к операции.
+        selectedKeys() — возвращает набор каналов, готовых к операциям.
+    Типичный сценарий:
+        Зарегистрировать каналы в селекторе.
+        Использовать select() для проверки активности каналов.
+        Обработать активные каналы.
+
+Потоки (Streams) и каналы:
+
+    В Java NIO данные передаются через каналы, а не через потоки.
+    Каналы работают с буферами, что позволяет более эффективно управлять памятью.
+
+```java
+Чтение данных из файла с помощью FileChannel
+
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+
+public class NIOExample {
+  public static void main(String[] args) throws Exception {
+    // Открываем файл для чтения
+    RandomAccessFile file = new RandomAccessFile("example.txt", "r");
+    FileChannel channel = file.getChannel();
+
+    // Создаем буфер
+    ByteBuffer buffer = ByteBuffer.allocate(1024);
+
+    // Читаем данные из файла в буфер
+    int bytesRead = channel.read(buffer);
+    while (bytesRead != -1) {
+      System.out.println("Read: " + bytesRead);
+
+      // Переключаем буфер в режим чтения
+      buffer.flip();
+
+      while (buffer.hasRemaining()) {
+        System.out.print((char) buffer.get());
+      }
+
+      // Очищаем буфер для следующего чтения
+      buffer.clear();
+      bytesRead = channel.read(buffer);
+    }
+    channel.close();
+    file.close();
+  }
+}
+```
+
+```java
+Асинхронный сервер с использованием Selector
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Set;
+
+public class NIOServer {
+  public static void main(String[] args) throws IOException {
+    Selector selector = Selector.open();
+    ServerSocketChannel serverChannel = ServerSocketChannel.open();
+    serverChannel.configureBlocking(false);
+    serverChannel.bind(new InetSocketAddress(8080));
+    serverChannel.register(selector, serverChannel.validOps());
+
+    System.out.println("Server started on port 8080...");
+
+    while (true) {
+      selector.select();
+      Set<java.nio.channels.SelectionKey> selectedKeys = selector.selectedKeys();
+      Iterator<java.nio.channels.SelectionKey> iterator = selectedKeys.iterator();
+
+      while (iterator.hasNext()) {
+        java.nio.channels.SelectionKey key = iterator.next();
+
+        if (key.isAcceptable()) {
+          SocketChannel clientChannel = serverChannel.accept();
+          clientChannel.configureBlocking(false);
+          clientChannel.register(selector, java.nio.channels.SelectionKey.OP_READ);
+          System.out.println("Client connected...");
+        } else if (key.isReadable()) {
+          SocketChannel clientChannel = (SocketChannel) key.channel();
+          ByteBuffer buffer = ByteBuffer.allocate(256);
+          clientChannel.read(buffer);
+          System.out.println("Received: " + new String(buffer.array()).trim());
+        }
+
+        iterator.remove();
+      }
+    }
+  }
+}
+```
+
+#### Преимущества Java NIO
+
+    Высокая производительность для масштабируемых систем.
+    Поддержка асинхронного и неблокирующего ввода-вывода.
+    Гибкость в работе с большими объемами данных.
+
+#### Недостатки
+
+    Более сложная в освоении API по сравнению с Java IO.
+    Требует понимания работы с потоками и синхронизацией.
 
 [К оглавлению](#Multithreading)
 
 # 40. Что такое канал?
 
+Канал (Channel) в Java NIO — это абстракция для потокового взаимодействия с данными. Он представляет собой
+двунаправленный путь, через который можно передавать данные между программой и источником данных (например, файл, сокет
+или устройство).
+
+Каналы являются основой для работы с NIO и предлагают более гибкий и эффективный способ работы с данными по сравнению с
+традиционными потоками (InputStream и OutputStream) в Java IO.
+
+#### Особенности канала
+
++ Двунаправленность:
+  Каналы могут одновременно читать и записывать данные (в отличие от Java IO, где чтение и запись выполняются
+  раздельными потоками).
+
++ Работа с буферами:
+  Все операции чтения и записи выполняются через буферы (Buffer), что позволяет более точно контролировать работу с
+  памятью.
+
++ Неблокирующий режим:
+  Каналы могут работать в неблокирующем режиме, что особенно полезно для приложений, где требуется масштабирование (
+  например, обработка тысяч соединений).
+
++ Асинхронная работа:
+  С помощью Selector каналы позволяют одному потоку управлять несколькими каналами одновременно.
+
+#### Типы каналов в Java NIO
+
++ FileChannel:
+Работает с файлами.
+Предназначен для чтения и записи данных в файлы.
+Поддерживает операции позиционного ввода-вывода (можно читать/записывать данные в произвольное место в файле).
+
++ SocketChannel:
+        Работает с TCP-сокетами.
+        Используется для чтения и записи данных в сетевые соединения.
+
++ ServerSocketChannel:
+        Представляет серверный сокет.
+        Используется для приема входящих соединений.
+
++ DatagramChannel:
+        Работает с UDP-сокетами.
+        Поддерживает как неблокирующий, так и блокирующий ввод-вывод.
+
+```java
+Чтение данных из файла через FileChannel
+
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+
+public class FileChannelExample {
+  public static void main(String[] args) throws Exception {
+    // Открытие файла
+    RandomAccessFile file = new RandomAccessFile("example.txt", "r");
+    FileChannel channel = file.getChannel();
+
+    // Создаем буфер
+    ByteBuffer buffer = ByteBuffer.allocate(1024);
+
+    // Чтение данных из канала в буфер
+    int bytesRead = channel.read(buffer);
+    while (bytesRead != -1) {
+      System.out.println("Read: " + bytesRead);
+
+      // Переключение буфера в режим чтения
+      buffer.flip();
+
+      while (buffer.hasRemaining()) {
+        System.out.print((char) buffer.get());
+      }
+
+      // Очистка буфера для следующего чтения
+      buffer.clear();
+      bytesRead = channel.read(buffer);
+    }
+    channel.close();
+    file.close();
+  }
+}
+```
+
+```java
+Работа с SocketChannel
+
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+
+public class SocketChannelExample {
+  public static void main(String[] args) throws Exception {
+    // Подключение к серверу
+    SocketChannel socketChannel = SocketChannel.open();
+    socketChannel.connect(new InetSocketAddress("localhost", 8080));
+
+    // Отправка данных на сервер
+    String message = "Hello, Server!";
+    ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+    socketChannel.write(buffer);
+
+    // Закрытие соединения
+    socketChannel.close();
+  }
+}
+```
+
+#### Преимущества каналов
+
++ Эффективность:
+Каналы позволяют читать и записывать данные напрямую из операционной системы, что делает их более быстрыми, чем стандартные потоки.
+
++ Масштабируемость:
+        Поддержка неблокирующего ввода-вывода и работы с Selector делает каналы идеальными для масштабируемых приложений (например, серверов).
+
++ Гибкость:
+        Возможность позиционного чтения/записи и асинхронной работы.
+
+#### Недостатки
+
++ Сложность:
+        API более сложное, чем у Java IO.
+        Требует понимания работы с буферами, синхронизации и потоками.
+
++ Требовательность к разработчику:
+        Нужно тщательно следить за управлением памятью и обработкой исключений.
+
 [К оглавлению](#Multithreading)
 
 # 41. Что такое буфер?
+
+Буфер в Java NIO — это специальный объект, предназначенный для временного хранения данных, которые читаются из канала
+или записываются в канал. Буфер служит промежуточным хранилищем между источником данных (например, файлом или сетью) и
+программой.
+
+#### Основные особенности буфера
+
++ Используется с каналами:
+        Все операции чтения и записи в каналах выполняются через буферы.
+
++ Состояния буфера:
+        Буфер имеет определенные внутренние параметры (position, limit, capacity), которые помогают управлять процессом чтения и записи данных.
+
++ Типизация:
+        Буферы бывают разных типов для работы с конкретными типами данных, например, ByteBuffer для байтов, CharBuffer для символов, IntBuffer для целых чисел и так далее.
+
++ Скорость работы:
+        Буферы более эффективны, чем прямое чтение или запись через потоки, так как позволяют выполнять операции с данными блоками.
+
+#### Ключевые параметры буфера
+
+    Capacity (вместимость):
+        Максимальное количество элементов, которое буфер может хранить.
+        Устанавливается при создании буфера и не может измениться.
+
+    Position (позиция):
+        Текущая позиция записи или чтения данных.
+        Начинается с 0 и увеличивается по мере записи или чтения данных.
+
+    Limit (граница):
+        Показывает, сколько данных доступно для чтения или записи.
+        При записи данных в буфер граница равна вместимости.
+        При переключении в режим чтения граница устанавливается равной текущей позиции.
+
+#### Основные методы буфера
+
+    flip():
+        Переключает буфер из режима записи в режим чтения.
+        Устанавливает limit = position и сбрасывает position в 0.
+
+    clear():
+        Очищает буфер для нового цикла записи.
+        Сбрасывает position в 0 и устанавливает limit = capacity.
+
+    rewind():
+        Сбрасывает position в 0 для повторного чтения данных.
+
+    remaining():
+        Возвращает количество элементов между position и limit.
+
+    mark() и reset():
+        mark() устанавливает метку в текущей позиции.
+        reset() возвращает буфер в положение этой метки.
+
+#### Типы буферов
+
+    Heap Buffer:
+        Хранит данные в обычной памяти Java.
+        Медленнее, но безопаснее для работы с объектами.
+
+    Direct Buffer:
+        Хранит данные в памяти вне Java Heap.
+        Быстрее для работы с каналами, но создание таких буферов дороже.
+
+#### Преимущества буферов
+
++ Эффективность:
+        Позволяют обрабатывать данные блоками, что быстрее, чем работа с байтами или символами по одному.
+
++ Гибкость:
+        Поддерживают различные типы данных и удобное управление состоянием (позиция, граница).
+
++ Совместимость с каналами:
+        Необходимы для работы с NIO, что делает их основой современных высокопроизводительных приложений.
+
+```java
+Запись и чтение данных через ByteBuffer
+
+import java.nio.ByteBuffer;
+
+public class BufferExample {
+  public static void main(String[] args) {
+    // Создаем буфер емкостью 10 байт
+    ByteBuffer buffer = ByteBuffer.allocate(10);
+
+    // Записываем данные в буфер
+    buffer.put((byte) 1);
+    buffer.put((byte) 2);
+    buffer.put((byte) 3);
+
+    System.out.println("Position после записи: " + buffer.position());
+    System.out.println("Limit после записи: " + buffer.limit());
+
+    // Переключаемся в режим чтения
+    buffer.flip();
+
+    System.out.println("Position после flip(): " + buffer.position());
+    System.out.println("Limit после flip(): " + buffer.limit());
+
+    // Читаем данные из буфера
+    while (buffer.hasRemaining()) {
+      System.out.println(buffer.get());
+    }
+
+    // Очищаем буфер для новой записи
+    buffer.clear();
+    System.out.println("Position после clear(): " + buffer.position());
+    System.out.println("Limit после clear(): " + buffer.limit());
+  }
+}
+```
 
 [К оглавлению](#Multithreading)
 
 # 42. Что такое селектор?
 
+Селектор в Java NIO — это компонент, который позволяет одному потоку управлять несколькими каналами (каналами
+ввода-вывода). Это основа асинхронного (или неблокирующего) ввода-вывода
+в Java. Селекторы позволяют эффективно обрабатывать множество соединений, избегая создания отдельного потока для каждого
+из них.
+
+Основные принципы работы селектора
+
++ Регистрация каналов:
+        Канал регистрируется с селектором, чтобы сообщать селектору о событиях, таких как готовность к чтению, записи или установлению соединения.
+
++ Отслеживаемые события:
+Селектор следит за состоянием каналов и реагирует на определенные события:
+  + OP_ACCEPT: Готовность канала для принятия нового соединения (например, серверный сокет).
+  + OP_CONNECT: Установление соединения.
+  + OP_READ: Готовность канала к чтению данных.
+  + OP_WRITE: Готовность канала к записи данных.
+
++ Мультиплексирование:
+      Один поток может обрабатывать множество каналов, проверяя, какой из них готов к выполнению операции, без необходимости блокироваться на каждом.
+
++ Асинхронность:
+        Вместо ожидания завершения операции (как в блокирующем вводе-выводе), селектор уведомляет, когда операция готова.
+
+#### Основные методы селектора
+
+`open()`: Создает новый селектор:
+
+    Selector selector = Selector.open();
+
+`register()`: Регистрирует канал с селектором и задает интересующие события:
+
+    channel.configureBlocking(false); // Канал должен быть неблокирующим
+    channel.register(selector, SelectionKey.OP_READ);
+
+`select()`: Блокируется до тех пор, пока хотя бы один канал не станет готов к выполнению операции.
+
+`selectNow()`: Немедленно возвращает количество готовых каналов (не блокируется).
+
+`select(timeout)`: Блокируется на указанный промежуток времени, если нет готовых каналов.
+
+`selectedKeys()`: Возвращает набор ключей (каналов), готовых для операций.
+
+`wakeup()`: Прерывает блокировку select().
+
+#### Преимущества селекторов
+
++ Высокая производительность:
+        Один поток может управлять тысячами соединений, что снижает накладные расходы на создание потоков.
+
++ Эффективное использование ресурсов:
+        Каналы регистрируются в селекторе и не блокируют поток, пока не готовы.
+
++ Подходит для масштабных приложений:
+        Часто используется в сетевых приложениях, таких как серверы, веб-прокси, многопользовательские игры.
+
+#### Ограничения селекторов
+
++ Не подходит для операций с высокой задержкой:
+        Если обработка каждого соединения требует значительных ресурсов, селектор неэффективен.
+
++ Сложность реализации:
+        Код с использованием селекторов более сложен, чем с использованием блокирующего ввода-вывода.
+
++ Не поддерживает файлы:
+        Селекторы работают только с каналами, связанными с сетью.
+
+````java
+Серверный сокет с использованием селектора
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+
+public class SelectorExample {
+    public static void main(String[] args) throws IOException {
+        Selector selector = Selector.open();
+        ServerSocketChannel serverSocket = ServerSocketChannel.open();
+        serverSocket.bind(new InetSocketAddress(8080));
+        serverSocket.configureBlocking(false);
+        serverSocket.register(selector, SelectionKey.OP_ACCEPT);
+
+        System.out.println("Server is listening on port 8080...");
+
+        while (true) {
+            selector.select(); // Блокируемся до готовности каналов
+            Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+
+            while (keys.hasNext()) {
+                SelectionKey key = keys.next();
+                keys.remove();
+
+                if (key.isAcceptable()) {
+                    // Принимаем новое соединение
+                    SocketChannel client = serverSocket.accept();
+                    client.configureBlocking(false);
+                    client.register(selector, SelectionKey.OP_READ);
+                    System.out.println("Accepted new connection from client");
+                } else if (key.isReadable()) {
+                    // Читаем данные от клиента
+                    SocketChannel client = (SocketChannel) key.channel();
+                    ByteBuffer buffer = ByteBuffer.allocate(256);
+                    int bytesRead = client.read(buffer);
+
+                    if (bytesRead == -1) {
+                        client.close();
+                        System.out.println("Connection closed by client");
+                    } else {
+                        System.out.println("Received: " + new String(buffer.array()).trim());
+                        client.write(ByteBuffer.wrap("Hello, Client!".getBytes()));
+                    }
+                }
+            }
+        }
+    }
+}
+````
+
 [К оглавлению](#Multithreading)
 
 # 43. Когда есть смысл использовать Java NIO?
 
+#### Использовать Java NIO имеет смысл, если требуется:
+
+    Управлять большим количеством соединений с минимальными затратами.
+    Эффективно работать с большими файлами.
+    Обеспечить асинхронный или неблокирующий ввод-вывод.
+    Создать масштабируемое и высокопроизводительное приложение.
+
+#### Java NIO не стоит использовать:
+
++ Если приложение малонагруженное и число клиентов невелико (например, небольшой чат или локальный инструмент).
++ Если важна простота кода, а производительность не является критичным фактором.
++ Если все операции ввод-вывод предполагают блокирующее взаимодействие, и их число мало.
+
 [К оглавлению](#Multithreading)
 
 # 44. Что такое PipedStreams? Как они устроены?
+
+PipedStreams — это каналы для связи между потоками, предоставляемые классами Java PipedInputStream и PipedOutputStream (
+для работы с байтами) и PipedReader и PipedWriter (для работы с символами). Они позволяют одному потоку записывать
+данные, а другому потоку их считывать.
+
+PipedStreams реализуют модель pipe (труба): один поток пишет в "трубу" через PipedOutputStream или PipedWriter, а другой
+читает через PipedInputStream или PipedReader. Это полезно для обмена данными между потоками.
+
+#### Устройство и принцип работы
+
++ Связывание потоков:
+  + Для использования необходимо связать PipedOutputStream с PipedInputStream (или PipedWriter с PipedReader) с помощью конструктора или метода connect.
+  + После связывания данные, записанные в PipedOutputStream, сразу становятся доступными для чтения через PipedInputStream.
+
++ Очередь данных:
+  + Внутренне PipedStreams используют буфер (FIFO-очередь).
+  + При записи данных в поток они добавляются в буфер.
+  + При чтении данные извлекаются из буфера.
+  + Если буфер заполнен, поток записи блокируется до освобождения места.
+  + Если буфер пуст, поток чтения блокируется до поступления данных.
+
++ Потокобезопасность:
+PipedStreams синхронизированы, чтобы обеспечить корректную работу при взаимодействии потоков.
+
+#### Особенности и ограничения
+
++ Блокировки:
+        Если буфер заполнен, запись блокируется.
+        Если буфер пуст, чтение блокируется.
+
++ Связывание:
+        Потоки должны быть связаны. Попытка записи или чтения без связи приведёт к IOException.
+
++ Ограничения одного соединения:
+        Один PipedInputStream или PipedReader может быть подключён только к одному PipedOutputStream или PipedWriter.
+
++ Применение:
+        PipedStreams чаще используются в задачах межпоточного взаимодействия, когда требуется простая передача данных.
+
+#### Когда использовать PipedStreams?
+
++ Когда требуется прямой обмен данными между потоками без промежуточного хранения (например, в файле или коллекции).
++ Для организации "продюсер-потребитель" модели, если она достаточно проста.
+
+В современных реализациях межпоточной коммуникации чаще применяются более высокоуровневые конструкции, такие как очереди
+из библиотеки java.util.concurrent (например, BlockingQueue), которые предлагают больше гибкости и функциональности.
+
+````java
+Работа с байтовыми потоками
+
+import java.io.*;
+
+public class PipedStreamExample {
+    public static void main(String[] args) throws IOException {
+        PipedInputStream inputStream = new PipedInputStream();
+        PipedOutputStream outputStream = new PipedOutputStream(inputStream);
+
+        Thread writer = new Thread(() -> {
+            try {
+                outputStream.write("Hello from writer!".getBytes());
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread reader = new Thread(() -> {
+            try {
+                int data;
+                while ((data = inputStream.read()) != -1) {
+                    System.out.print((char) data);
+                }
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        writer.start();
+        reader.start();
+    }
+}
+````
+```java
+Работа с символьными потоками
+
+import java.io.*;
+
+public class PipedStreamCharExample {
+    public static void main(String[] args) throws IOException {
+        PipedReader reader = new PipedReader();
+        PipedWriter writer = new PipedWriter(reader);
+
+        Thread writerThread = new Thread(() -> {
+            try {
+                writer.write("Hello, Piped Streams!");
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread readerThread = new Thread(() -> {
+            try {
+                int data;
+                while ((data = reader.read()) != -1) {
+                    System.out.print((char) data);
+                }
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        writerThread.start();
+        readerThread.start();
+    }
+}
+
+```
 
 [К оглавлению](#Multithreading)
 
