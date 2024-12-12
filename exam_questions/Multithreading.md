@@ -3986,6 +3986,8 @@ PipedStreams — это каналы для связи между потокам
 PipedStreams реализуют модель pipe (труба): один поток пишет в "трубу" через PipedOutputStream или PipedWriter, а другой
 читает через PipedInputStream или PipedReader. Это полезно для обмена данными между потоками.
 
+PipedReader и PiperWriter работают с символами.
+
 #### Устройство и принцип работы
 
 + Связывание потоков:
@@ -4096,7 +4098,6 @@ public class PipedStreamCharExample {
         readerThread.start();
     }
 }
-
 ```
 
 [К оглавлению](#Multithreading)
