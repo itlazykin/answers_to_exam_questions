@@ -15,6 +15,7 @@
 #### Мидл.
 + [Git](exam_questions/Git.md#Git)
 + [Multithreading](exam_questions/Multithreading.md#Multithreading)
++ [SpringCore](exam_questions/SpringCore.md#SpringCore)
 
 
 
