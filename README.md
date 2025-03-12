@@ -19,6 +19,11 @@
 + [Web](exam_questions/Web.md#Web)
 + [Hibernate](exam_questions/Hibernate.md#Hibernate)
 
+#### Собес
+
++ [Gof](exam_questions/Gof.md#Gof)
+
+
 
 
 
