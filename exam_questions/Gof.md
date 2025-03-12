@@ -35,11 +35,12 @@
 Паттерны проектирования делятся на три группы:
 
 + порождающие — отвечают за создание объектов.
-  Singleton, Factory Method, Abstract Factory, Builder, Prototype.
+  Singleton, Factory Method (Фабричный метод), Abstract Factory (абстрактная фабрика), Builder (Строитель), Prototype.
 + Структурные — определяют, как классы и объекты могут быть связаны между собой.
-  Adapter, Decorator, Composite, Proxy, Bridge, Facade, Flyweight.
+  Adapter, Decorator, Composite (Компановщик), Proxy (Заместитель), Bridge (Мост), Facade, Flyweight (Легковес).
 + Поведенческие — описывают взаимодействие объектов.
-  Strategy, Observer, Command, State, Chain of Responsibility, Template Method.
+  Strategy, Observer (Наблюдатель), Command (Команда), State (Состояние), Chain of Responsibility (Цепочка обязанностей), Template Method (Шаблонный метод),
+  Итератор, Mediator (Посредник), Visitor (посетитель).
 
 [К оглавлению](#Gof)
 
