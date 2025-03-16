@@ -23,6 +23,7 @@
 
 + [Паттерны проектирования](exam_questions/Gof.md#Gof)
 + [Паттерны распределённых систем](exam_questions/Patofsys.md#Patofsys)
++ [ООП](exam_questions/Oopsobes.md#Oopsobes)
 
 
 
