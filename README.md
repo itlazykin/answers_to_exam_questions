@@ -26,6 +26,14 @@
 + [ООП](exam_questions/Oopsobes.md#Oopsobes)
 + [HR](exam_questions/Hr.md#Hr)
 
+#### Наизусть
+
++ [Java Core]
++ [BD]
++ [Solid]
++ [Spring]
++ [Test]
+
 
 
 
