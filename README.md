@@ -28,7 +28,7 @@
 
 #### Наизусть
 
-+ [Java Core](exam_questions/кор наизусть.md#КорНаизусть)
++ [Java Core](exam_questions/корнаизусть.md#КорНаизусть)
 + [BD]
 + [Solid]
 + [Spring]
