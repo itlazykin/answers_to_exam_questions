@@ -29,11 +29,11 @@
 #### Наизусть
 
 + [Java Core](exam_questions/корнаизусть.md#КорНаизусть)
-+ [BD]
-+ [Work BD]
-+ [Solid]
-+ [Spring]
-+ [Test]
++ [BD](exam_questions/database.md#DataBase)
++ [Work BD](exam_questions/workdatabase.md#WorkDataBase)
++ [Solid](exam_questions/solid.md#solid)
++ [Spring](exam_questions/spring.md#spring)
++ [Test](exam_questions/test.md#test)
 
 
 
