@@ -34,6 +34,7 @@
 + [Solid](exam_questions/solid.md#solid)
 + [Spring](exam_questions/spring.md#spring)
 + [Test](exam_questions/test.md#test)
++ [Многопоточка](exam_questions/многопоточка.md#Mnogopotochka)
 
 
 
