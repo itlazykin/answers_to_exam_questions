@@ -21,7 +21,6 @@
 
 #### Собес
 
-+ [Паттерны проектирования](exam_questions/Gof.md#Gof)
 + [Паттерны распределённых систем](exam_questions/Patofsys.md#Patofsys)
 + [ООП](exam_questions/Oopsobes.md#Oopsobes)
 + [HR](exam_questions/Hr.md#Hr)
@@ -35,6 +34,8 @@
 + [Spring](exam_questions/spring.md#spring)
 + [Test](exam_questions/test.md#test)
 + [Многопоточка](exam_questions/многопоточка.md#Mnogopotochka)
++ [Паттерны проектирования](exam_questions/Gof.md#Gof)
++ [Веб](exam_questions/webb.md#Webb)
 
 
 
